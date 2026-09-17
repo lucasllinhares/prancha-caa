@@ -99,7 +99,7 @@ export function Configuracoes() {
   };
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-5 p-3 pb-24">
+    <div className="mx-auto flex max-w-3xl flex-col gap-5 p-3 pb-16 sm:gap-6 sm:p-4 lg:p-6 lg:pb-10">
       <h1 className="titulo-tela">Configurações</h1>
 
       {/* --- Voz ------------------------------------------------------------ */}
@@ -186,7 +186,7 @@ export function Configuracoes() {
         </p>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {(['dinamico', 'contorno'] as const).map((estilo) => {
+          {(['contorno', 'dinamico'] as const).map((estilo) => {
             const selecionado = estiloEscolhido === estilo;
             return (
               <button
@@ -202,12 +202,12 @@ export function Configuracoes() {
               >
                 <PreviewEstilo estilo={estilo} />
                 <span className="font-extrabold">
-                  {estilo === 'dinamico' ? 'Dinâmico' : 'Contorno'}
+                  {estilo === 'contorno' ? 'Contorno (padrão)' : 'Dinâmico'}
                 </span>
                 <span className="text-sm" style={{ color: 'var(--texto-suave)' }}>
-                  {estilo === 'dinamico'
-                    ? 'Cores vivas, relevo e texturas — o visual padrão do app.'
-                    : 'Bordas grossas e sombra sólida, estilo adesivo.'}
+                  {estilo === 'contorno'
+                    ? 'Bordas grossas e sombra sólida, estilo adesivo — o visual padrão do app.'
+                    : 'Cores vivas, relevo e texturas — um estilo alternativo mais colorido.'}
                 </span>
               </button>
             );

@@ -22,7 +22,7 @@ export function Historico() {
   });
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-3 p-3 pb-24">
+    <div className="mx-auto flex max-w-3xl flex-col gap-3 p-3 pb-16 sm:gap-4 sm:p-4 lg:p-6 lg:pb-10">
       <h1 className="titulo-tela">Histórico de frases</h1>
       <p className="text-sm opacity-80">
         As últimas 30 frases faladas. Toque em ⭐ para fixar uma frase favorita e usá-la com um

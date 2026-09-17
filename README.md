@@ -228,8 +228,8 @@ fica salva no perfil, junto com as outras configurações):
 
 | Estilo | Aparência |
 | --- | --- |
-| **Dinâmico** (padrão) | o descrito acima: relevo suave, sombra desfocada e texturas nas capas. |
-| **Contorno** | visual tipo "sticker": contorno preto grosso em tudo, sombra sólida deslocada (sem desfoque) e sem texturas — cores chapadas. |
+| **Contorno** (padrão) | contorno preto grosso em tudo, sombra sólida deslocada (sem desfoque) e cores chapadas — visual tipo "sticker". |
+| **Dinâmico** | relevo suave, sombra desfocada e texturas nas capas — um estilo alternativo mais colorido. |
 
 As cores de cada categoria e símbolo são as mesmas nos dois estilos; só o tratamento de borda e
 sombra muda. A tela de Ajustes mostra os dois lado a lado numa prévia antes de aplicar, e a
@@ -237,9 +237,26 @@ troca só acontece ao tocar em **APLICAR ESTILO** — nada muda sozinho enquanto
 olhando as opções.
 
 Tecnicamente, o estilo escolhido vira o atributo `data-estilo` no `<html>`, e a diferença toda
-está em um bloco de CSS em `src/index.css` (seção "ESTILO VISUAL ALTERNATIVO: CONTORNO") que
+está em um bloco de CSS em `src/index.css` (seção "ESTILO VISUAL PADRÃO: CONTORNO") que
 sobrescreve bordas e sombras — funciona em conjunto com qualquer tema (claro, escuro ou alto
 contraste), porque a cor do contorno vem da própria variável de texto do tema ativo.
+
+### Desktop, tablet e celular
+
+O app roda igual nos três, mas o layout se adapta:
+
+- **Celular e tablet em pé** (até 1023px de largura): o app ocupa a tela inteira, como um
+  aplicativo nativo. 3 colunas de símbolos no celular em pé, 4 no celular deitado ou tablet.
+- **Tablet deitado e computador** (1024px ou mais): o app vira um cartão centralizado na tela,
+  com folga nas laterais — sem isso, num monitor largo os símbolos ficavam gigantes e
+  espalhados de ponta a ponta. 6 colunas de símbolos. A moldura usa contorno preto grosso e
+  sombra sólida no estilo Contorno, e borda fina com sombra suave no estilo Dinâmico.
+- Em qualquer tamanho de tela, a altura de cada símbolo tem um teto (`22vh`): isso evita que,
+  em telas altas e estreitas (um tablet em pé, por exemplo), os símbolos virem retângulos
+  compridos e deformados — o espaço que sobra vira margem equilibrada em vez de esticar os
+  símbolos.
+- Espaçamentos e preenchimentos (entre símbolos, dentro dos cartões, nas bordas da tela)
+  aumentam um pouco em telas maiores (`sm:`/`lg:` do Tailwind), para nada ficar apertado.
 
 ---
 

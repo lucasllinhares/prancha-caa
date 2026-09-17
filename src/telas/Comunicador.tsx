@@ -33,7 +33,7 @@ export function Comunicador() {
   const [pagina, setPagina] = useState(0);
 
   const pranchaAtual = pranchas.find((p) => p.id === pilha[pilha.length - 1]) ?? pranchaInicial;
-  const { colunas, porPagina } = useLayoutGrade(config.densidade);
+  const { colunas: colunasTela, porPagina } = useLayoutGrade(config.densidade);
 
   // Se a prancha for excluída no editor, volta para o início.
   useEffect(() => {
@@ -49,6 +49,12 @@ export function Comunicador() {
     () => pranchaAtual.simbolos.slice(paginaSegura * porPagina, (paginaSegura + 1) * porPagina),
     [pranchaAtual, paginaSegura, porPagina]
   );
+
+  // Quando a página tem menos símbolos do que colunas cabem na tela (ex.:
+  // últimos 2 itens de uma categoria), usamos só as colunas necessárias —
+  // assim a fileira final não fica esticada, com os tiles enormes e vazios
+  // do lado. É esse valor (não o da tela) que manda na grade e nas setas.
+  const colunas = Math.max(1, Math.min(colunasTela, simbolosVisiveis.length || colunasTela));
 
   const nucleo = config.mostrarNucleo ? SIMBOLOS_NUCLEO : [];
   /** Ordem usada pela varredura e pelas setas do teclado. */
@@ -187,7 +193,7 @@ export function Comunicador() {
       <BarraFrase />
 
       {/* Navegação: VOLTAR sempre visível e grande + trilha (breadcrumb) */}
-      <nav className="flex items-center gap-2 px-2 pb-1">
+      <nav className="flex items-center gap-2 px-2 pb-1 sm:gap-3 sm:px-3 lg:px-4">
         <button
           type="button"
           className="botao"
@@ -224,7 +230,7 @@ export function Comunicador() {
       )}
 
       {/* Grade de símbolos */}
-      <main className="relative flex min-h-0 flex-1 flex-col p-2">
+      <main className="relative flex min-h-0 flex-1 flex-col p-2 sm:p-3 lg:p-4">
         {config.varreduraAtiva && (
           // Durante a varredura, um toque em qualquer lugar da área de
           // símbolos seleciona o item que está destacado.
@@ -246,16 +252,18 @@ export function Comunicador() {
             // A chave muda ao trocar de prancha ou de página: os tiles
             // remontam e a animação de entrada acontece de novo.
             key={`${pranchaAtual.id}-${paginaSegura}`}
-            className="grid min-h-0 flex-1 gap-2"
+            className="grid min-h-0 flex-1 content-center gap-2 sm:gap-3 lg:gap-4"
             style={{
-              // As colunas vêm da orientação/densidade e as linhas dividem a
-              // altura disponível: assim a densidade escolhida cabe na tela,
-              // sempre respeitando o alvo mínimo de 64px.
+              // As colunas vêm do tamanho da tela e as linhas dividem a
+              // altura disponível, sempre respeitando o alvo mínimo de 64px
+              // e um teto de 30% da altura da tela — sem o teto, em telas
+              // bem altas e estreitas (tablet em pé) sobra tanta altura que
+              // os símbolos viravam retângulos compridos e deformados.
               gridTemplateColumns: `repeat(${colunas}, minmax(0, 1fr))`,
               gridTemplateRows: `repeat(${Math.max(
                 1,
                 Math.ceil(simbolosVisiveis.length / colunas)
-              )}, minmax(64px, 1fr))`
+              )}, minmax(64px, 22vh))`
             }}
           >
             {simbolosVisiveis.map((simbolo, i) => {
@@ -305,7 +313,7 @@ export function Comunicador() {
 
       {/* Faixa fixa de vocabulário nuclear */}
       {config.mostrarNucleo && (
-        <footer className="sticky bottom-0 z-30 px-2 pb-2" aria-label="Vocabulário nuclear">
+        <footer className="sticky bottom-0 z-30 px-2 pb-2 sm:px-3 lg:px-4" aria-label="Vocabulário nuclear">
           <div className="cartao flex gap-2 overflow-x-auto p-2">
             {SIMBOLOS_NUCLEO.map((simbolo, i) => (
               <div key={simbolo.id} className="h-[80px] w-[80px] shrink-0">

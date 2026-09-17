@@ -2,18 +2,23 @@ import { useEffect, useState } from 'react';
 import type { Densidade } from '../tipos';
 
 /**
- * Calcula quantas colunas a grade deve ter.
+ * Calcula quantas colunas a grade deve ter, pela largura real da tela:
+ * 3 colunas no celular em pé, 4 no celular deitado/tablet e 6 no
+ * computador. Esse número não depende da densidade escolhida — a
+ * densidade só decide quantos símbolos cabem em cada página (paginação);
+ * quem decide o número de colunas é o tamanho da tela, para o layout ficar
+ * sempre bem proporcionado, do celular ao monitor grande.
  *
- * Regra da especificação: 3 colunas no celular em pé, 4 deitado e 6 no
- * desktop. A densidade escolhida nas configurações (4, 6, 9, 12 ou 16
- * símbolos por tela) limita esse número, para os botões nunca ficarem
- * menores que o alvo mínimo de toque.
+ * Quando uma página tem menos símbolos do que colunas (ex.: só restaram 2
+ * símbolos na última página), quem chama este gancho deve limitar as
+ * colunas ao número de itens daquela página — assim a última fileira não
+ * fica esticada e vazia. Isso é feito em `Comunicador.tsx`.
  */
 export function useLayoutGrade(densidade: Densidade): { colunas: number; porPagina: number } {
-  const [colunasBase, setColunasBase] = useState(() => calcularColunasBase());
+  const [colunas, setColunas] = useState(() => calcularColunas());
 
   useEffect(() => {
-    const atualizar = () => setColunasBase(calcularColunasBase());
+    const atualizar = () => setColunas(calcularColunas());
     window.addEventListener('resize', atualizar);
     window.addEventListener('orientationchange', atualizar);
     return () => {
@@ -22,22 +27,15 @@ export function useLayoutGrade(densidade: Densidade): { colunas: number; porPagi
     };
   }, []);
 
-  // Limite de colunas por densidade no celular em pé. Em telas maiores
-  // permitimos 50% mais colunas (o que dá as 6 colunas do desktop com
-  // densidade 12 ou 16), sem nunca passar do número de símbolos da tela.
-  const limiteCelular: Record<Densidade, number> = { 4: 2, 6: 3, 9: 3, 12: 4, 16: 4 };
-  const limite = colunasBase >= 6 ? Math.round(limiteCelular[densidade] * 1.5) : limiteCelular[densidade];
-  const colunas = Math.max(1, Math.min(colunasBase, limite, densidade));
-
   return { colunas, porPagina: densidade };
 }
 
-function calcularColunasBase(): number {
+function calcularColunas(): number {
   if (typeof window === 'undefined') return 3;
   const largura = window.innerWidth;
   const deitado = window.innerWidth > window.innerHeight;
 
-  if (largura >= 1024) return 6; // desktop
-  if (largura >= 700 || deitado) return 4; // tablet ou celular deitado
+  if (largura >= 1024) return 6; // computador e tablet deitado grande
+  if (largura >= 700 || deitado) return 4; // tablet em pé ou celular deitado
   return 3; // celular em pé
 }

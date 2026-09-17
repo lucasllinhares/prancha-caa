@@ -36,7 +36,7 @@ export function Perfis() {
   };
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-4 p-3 pb-24">
+    <div className="mx-auto flex max-w-3xl flex-col gap-4 p-3 pb-16 sm:gap-5 sm:p-4 lg:p-6 lg:pb-10">
       <h1 className="titulo-tela">Perfis</h1>
       <p className="text-sm opacity-80">
         Toque em um perfil para usá-lo agora. Cada perfil guarda as próprias pranchas,

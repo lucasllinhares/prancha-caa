@@ -3,13 +3,15 @@
 @tailwind utilities;
 
 /* ==========================================================================
-   IDENTIDADE VISUAL
+   IDENTIDADE VISUAL — TOKENS COMPARTILHADOS
    --------------------------------------------------------------------------
-   Inspiração: cards grandes e saturados (estilo "bento"), cantos bem
-   arredondados, tipografia bold arredondada (Nunito) e botões com
-   profundidade — o toque afunda o botão, como em app de jogo.
+   Cores, temas e tamanhos usados pelos DOIS estilos visuais do app (ver
+   "Estilo visual" em Ajustes). As regras de relevo/sombra logo abaixo (seção
+   "SÍMBOLOS") descrevem o estilo "Dinâmico"; o bloco "ESTILO CONTORNO", mais
+   adiante no arquivo, sobrescreve essas mesmas regras quando o app está no
+   estilo "Contorno" — que é o estilo padrão do app.
 
-   Regras que a estética NUNCA quebra:
+   Regras que a estética NUNCA quebra, nos dois estilos:
    - contraste WCAG AA: todo preenchimento vivo usa texto escuro da mesma
      família de cor (ex.: texto verde-escuro sobre verde-limão);
    - alvo de toque mínimo de 64x64px;
@@ -20,6 +22,11 @@
 
 :root {
   /* --- Cromo da interface (muda com o tema) --- */
+  /* --fundo-pagina é o fundo da PÁGINA (fora do app), visível só em telas
+     grandes (computador/tablet deitado), quando o app vira um cartão
+     centralizado — ver "MOLDURA DO APP" mais abaixo. Um tom levemente mais
+     forte que --fundo faz o cartão se destacar do fundo da página. */
+  --fundo-pagina: #dbe3f7;
   --fundo: #eef2ff;
   --fundo-brilho-1: #c7d7ff;
   --fundo-brilho-2: #ffe1c2;
@@ -89,6 +96,7 @@
 
 /* --- Tema escuro: cromo escuro, símbolos continuam vivos e reconhecíveis --- */
 :root[data-tema='escuro'] {
+  --fundo-pagina: #04060d;
   --fundo: #080d1c;
   --fundo-brilho-1: #1b2a63;
   --fundo-brilho-2: #3a1d52;
@@ -107,6 +115,7 @@
 
 /* --- Tema de alto contraste: acessibilidade acima da estética --- */
 :root[data-tema='contraste'] {
+  --fundo-pagina: #000000;
   --fundo: #000000;
   --fundo-brilho-1: #000000;
   --fundo-brilho-2: #000000;
@@ -156,16 +165,41 @@ body {
   user-select: none;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: none;
-  /* Fundo com dois brilhos coloridos bem suaves: dá vida sem atrapalhar a
-     leitura dos símbolos (que são o conteúdo de verdade). */
+  /* Fundo liso da página. O brilho decorativo mora no app (.moldura-app,
+     logo abaixo), não aqui — assim ele fica só dentro do "cartão" do app
+     quando o app é exibido centralizado em telas grandes. */
+  background: var(--fundo-pagina);
+}
+
+/* ==========================================================================
+   MOLDURA DO APP
+   --------------------------------------------------------------------------
+   No celular e no tablet em pé, o app ocupa a tela inteira (como hoje). A
+   partir de telas grandes (tablet deitado / computador, 1024px+), o app
+   vira um cartão centralizado, com folga nas laterais — sem isso, os
+   símbolos ficavam enormes e espalhados de ponta a ponta num monitor largo.
+   ========================================================================== */
+.moldura-app {
+  /* Mesmo brilho decorativo que antes ficava no body. */
   background-color: var(--fundo);
   background-image: radial-gradient(90vw 55vh at 8% -10%, var(--fundo-brilho-1) 0%, transparent 60%),
     radial-gradient(70vw 45vh at 105% 5%, var(--fundo-brilho-2) 0%, transparent 55%);
-  background-attachment: fixed;
 }
 
-:root[data-tema='contraste'] body {
+:root[data-tema='contraste'] .moldura-app {
   background-image: none;
+}
+
+@media (min-width: 1024px) {
+  .moldura-app {
+    margin: 1.75rem auto;
+    height: calc(100vh - 3.5rem);
+    max-width: 1180px;
+    border-radius: 2rem;
+    overflow: hidden;
+    border: 2px solid var(--borda);
+    box-shadow: var(--sombra);
+  }
 }
 
 /* Foco sempre visível e grosso: essencial para teclado e acionador. */
@@ -652,11 +686,12 @@ body {
 }
 
 /* ==========================================================================
-   ESTILO VISUAL ALTERNATIVO: "CONTORNO"
+   ESTILO VISUAL PADRÃO: "CONTORNO"
    --------------------------------------------------------------------------
-   Ativado em Ajustes → Estilo visual → Contorno (o padrão é "Dinâmico",
-   definido acima). Troca o relevo suave, as texturas das capas e a sombra
-   desfocada por um visual tipo "sticker": contorno preto grosso em tudo e
+   Estilo ativo por padrão em instalações novas (Ajustes → Estilo visual
+   deixa trocar para "Dinâmico", definido acima, a qualquer momento). Troca o
+   relevo suave, as texturas das capas e a sombra desfocada do estilo
+   Dinâmico por um visual tipo "sticker": contorno preto grosso em tudo e
    sombra sólida deslocada, sem desfoque nenhum. As cores de cada categoria
    continuam as mesmas — só o tratamento de borda e sombra muda, então dá
    para trocar de estilo sem reaprender onde fica cada coisa.
@@ -671,8 +706,19 @@ body {
 }
 
 /* Fundo liso: sem os brilhos radiais do estilo padrão. */
-[data-estilo='contorno'] body {
+[data-estilo='contorno'] .moldura-app {
   background-image: none;
+}
+
+/* Moldura do app em telas grandes: contorno preto grosso e sombra sólida,
+   em vez da borda fina e sombra desfocada do estilo Dinâmico. */
+@media (min-width: 1024px) {
+  [data-estilo='contorno'] .moldura-app {
+    border-width: var(--linha-largura);
+    border-color: var(--linha);
+    border-radius: 1.75rem;
+    box-shadow: 8px 8px 0 var(--linha);
+  }
 }
 
 [data-estilo='contorno'] .cartao {

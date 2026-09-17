@@ -31,7 +31,10 @@ export function App() {
   const precisaPin = aba === 'editar' && Boolean(config.pinEditor) && !editorLiberado;
 
   return (
-    <div className="flex h-screen flex-col" style={{ background: 'var(--fundo)' }}>
+    // .moldura-app: no celular ocupa a tela inteira; em telas grandes
+    // (computador, tablet deitado) vira um cartão centralizado — ver
+    // "MOLDURA DO APP" em src/index.css.
+    <div className="moldura-app flex h-screen flex-col">
       {/* Área de conteúdo: é o contêiner que rola, o que mantém a barra de
           frase fixa no topo e a faixa do núcleo fixa embaixo. */}
       <div className="h-full flex-1 overflow-y-auto">
@@ -62,21 +65,25 @@ export function App() {
         }}
         aria-label="Seções do aplicativo"
       >
-        <ul className="flex px-1 pt-1">
+        {/* No celular e tablet, as 5 abas dividem a largura igualmente
+            (fácil de mirar com o dedo). No computador (lg+), viram botões
+            de tamanho natural, lado a lado e centralizados — como uma barra
+            de abas de desktop, sem esticar. */}
+        <ul className="flex px-1 pt-1 lg:justify-center lg:gap-2 lg:px-4 lg:pb-1">
           {ABAS.map((a) => {
             const ativa = aba === a.id;
             return (
-              <li key={a.id} className="flex-1">
+              <li key={a.id} className="flex-1 lg:flex-none">
                 <button
                   type="button"
                   onClick={() => setAba(a.id)}
                   aria-current={ativa ? 'page' : undefined}
-                  className="flex min-h-toque w-full flex-col items-center justify-center gap-0.5 rounded-2xl px-1 py-1.5 font-extrabold transition-transform duration-rapido active:scale-95"
+                  className="flex min-h-toque w-full flex-col items-center justify-center gap-0.5 rounded-2xl px-1 py-1.5 font-extrabold transition-transform duration-rapido active:scale-95 lg:w-auto lg:flex-row lg:gap-2 lg:px-4"
                 >
                   {/* Ícone dentro de um disco que se acende na aba ativa */}
                   <span
                     aria-hidden="true"
-                    className="flex h-9 w-9 items-center justify-center rounded-full border-2 text-xl leading-none transition-colors duration-rapido"
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 text-xl leading-none transition-colors duration-rapido"
                     style={{
                       background: ativa ? a.cor : 'transparent',
                       borderColor: ativa ? a.cor : 'transparent'
@@ -85,7 +92,7 @@ export function App() {
                     {a.icone}
                   </span>
                   <span
-                    className="text-[11px] uppercase"
+                    className="text-[11px] uppercase lg:text-sm"
                     style={{ color: ativa ? 'var(--texto)' : 'var(--texto-suave)' }}
                   >
                     {a.rotulo}

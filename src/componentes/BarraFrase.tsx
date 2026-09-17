@@ -17,14 +17,14 @@ export function BarraFrase() {
 
   return (
     <header
-      className="sticky top-0 z-30 px-2 pb-2 pt-2"
+      className="sticky top-0 z-30 px-2 pb-2 pt-2 sm:px-3 lg:px-4"
       style={{
         paddingTop: 'calc(env(safe-area-inset-top) + 0.5rem)',
         background:
           'linear-gradient(to bottom, var(--fundo) 62%, color-mix(in srgb, var(--fundo) 60%, transparent))'
       }}
     >
-      <div className="cartao flex flex-col gap-2 p-2">
+      <div className="cartao flex flex-col gap-2 p-2 sm:gap-3 sm:p-3">
         {/* Sequência de símbolos escolhidos */}
         <div
           className="flex min-h-[84px] items-center gap-2 overflow-x-auto rounded-2xl border-2 border-dashed p-2"
