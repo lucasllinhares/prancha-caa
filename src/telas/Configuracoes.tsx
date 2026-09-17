@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useApp } from '../estado/AppContext';
 import { observarVozes, sinteseDisponivel } from '../fala/sintetizador';
-import type { Densidade, TamanhoFonte, Tema, TomVoz, VelocidadeFala } from '../tipos';
+import type { Densidade, EstiloVisual, TamanhoFonte, Tema, TomVoz, VelocidadeFala } from '../tipos';
 
 /** Grupo de botões que funcionam como um seletor único, grande e tocável. */
 function Opcoes<T extends string | number>({
@@ -35,12 +35,58 @@ function Opcoes<T extends string | number>({
   );
 }
 
+/**
+ * Mostra em miniatura como os símbolos ficam em cada estilo visual, sem
+ * depender do estilo que está ativo agora — assim dá para comparar os dois
+ * lado a lado antes de escolher.
+ */
+function PreviewEstilo({ estilo }: { estilo: EstiloVisual }) {
+  const dinamico = estilo === 'dinamico';
+  const cores = [
+    { emoji: '😀', bg: '#ffc93c', bd: '#d19700' },
+    { emoji: '🍎', bg: '#4ade80', bd: '#16a34a' },
+    { emoji: '🚗', bg: '#7cc4ff', bd: '#2b82d4' }
+  ];
+  return (
+    <div className="flex gap-2" aria-hidden="true">
+      {cores.map((c, i) => (
+        <div
+          key={i}
+          className="flex h-14 w-14 shrink-0 items-center justify-center text-2xl"
+          style={
+            dinamico
+              ? {
+                  background: c.bg,
+                  borderRadius: '1rem',
+                  border: `2px solid ${c.bd}`,
+                  boxShadow: `0 4px 0 ${c.bd}`
+                }
+              : {
+                  background: c.bg,
+                  borderRadius: '0.7rem',
+                  border: '3px solid var(--texto)',
+                  boxShadow: '3px 3px 0 var(--texto)'
+                }
+          }
+        >
+          {c.emoji}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function Configuracoes() {
   const { config, atualizarConfig, falarTextoLivre } = useApp();
   const [vozes, setVozes] = useState<SpeechSynthesisVoice[]>([]);
   const [pin, setPin] = useState('');
+  /** Estilo escolhido na tela, ainda não aplicado — vira ativo só ao tocar em APLICAR. */
+  const [estiloEscolhido, setEstiloEscolhido] = useState<EstiloVisual>(config.estiloVisual);
 
   useEffect(() => observarVozes(setVozes), []);
+  // Se o estilo mudar por outro caminho (outro perfil, importação...), a
+  // prévia acompanha o que está realmente ativo.
+  useEffect(() => setEstiloEscolhido(config.estiloVisual), [config.estiloVisual]);
 
   const definirPin = () => {
     if (!/^\d{4}$/.test(pin)) {
@@ -130,6 +176,52 @@ export function Configuracoes() {
           ]}
           onEscolher={(v) => atualizarConfig({ falarAoTocar: v === 'sim' })}
         />
+      </section>
+
+      {/* --- Estilo visual --------------------------------------------------- */}
+      <section className="flex flex-col gap-4 cartao">
+        <h2 className="text-lg font-extrabold">Estilo visual</h2>
+        <p className="text-sm" style={{ color: 'var(--texto-suave)' }}>
+          Muda a aparência do app inteiro. Escolha um estilo e toque em APLICAR ESTILO.
+        </p>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {(['dinamico', 'contorno'] as const).map((estilo) => {
+            const selecionado = estiloEscolhido === estilo;
+            return (
+              <button
+                key={estilo}
+                type="button"
+                onClick={() => setEstiloEscolhido(estilo)}
+                aria-pressed={selecionado}
+                className="flex min-h-toque flex-col items-center gap-3 rounded-2xl p-4 text-center transition-transform duration-rapido active:scale-95"
+                style={{
+                  background: 'var(--cartao-2)',
+                  border: selecionado ? '3px solid var(--primaria)' : '2px solid var(--borda)'
+                }}
+              >
+                <PreviewEstilo estilo={estilo} />
+                <span className="font-extrabold">
+                  {estilo === 'dinamico' ? 'Dinâmico' : 'Contorno'}
+                </span>
+                <span className="text-sm" style={{ color: 'var(--texto-suave)' }}>
+                  {estilo === 'dinamico'
+                    ? 'Cores vivas, relevo e texturas — o visual padrão do app.'
+                    : 'Bordas grossas e sombra sólida, estilo adesivo.'}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        <button
+          type="button"
+          className="botao botao-primario w-full text-lg"
+          onClick={() => atualizarConfig({ estiloVisual: estiloEscolhido })}
+          disabled={estiloEscolhido === config.estiloVisual}
+        >
+          ✅ APLICAR ESTILO
+        </button>
       </section>
 
       {/* --- Tela ----------------------------------------------------------- */}

@@ -651,6 +651,137 @@ body {
   animation-delay: 280ms;
 }
 
+/* ==========================================================================
+   ESTILO VISUAL ALTERNATIVO: "CONTORNO"
+   --------------------------------------------------------------------------
+   Ativado em Ajustes → Estilo visual → Contorno (o padrão é "Dinâmico",
+   definido acima). Troca o relevo suave, as texturas das capas e a sombra
+   desfocada por um visual tipo "sticker": contorno preto grosso em tudo e
+   sombra sólida deslocada, sem desfoque nenhum. As cores de cada categoria
+   continuam as mesmas — só o tratamento de borda e sombra muda, então dá
+   para trocar de estilo sem reaprender onde fica cada coisa.
+
+   `--linha` usa a cor do texto do tema atual (preto no claro, quase-branco
+   no escuro), então o contorno se adapta sozinho ao tema claro/escuro.
+   ========================================================================== */
+
+[data-estilo='contorno'] {
+  --linha: var(--texto);
+  --linha-largura: 3px;
+}
+
+/* Fundo liso: sem os brilhos radiais do estilo padrão. */
+[data-estilo='contorno'] body {
+  background-image: none;
+}
+
+[data-estilo='contorno'] .cartao {
+  border-radius: 1.1rem;
+  border-width: var(--linha-largura);
+  border-color: var(--linha);
+  box-shadow: 5px 5px 0 var(--linha);
+}
+
+[data-estilo='contorno'] .botao {
+  border-radius: 0.9rem;
+  border-width: var(--linha-largura);
+  border-color: var(--linha);
+  box-shadow: 4px 4px 0 var(--linha);
+}
+[data-estilo='contorno'] .botao:active {
+  transform: translate(4px, 4px);
+  box-shadow: 0 0 0 var(--linha);
+}
+
+[data-estilo='contorno'] .botao-primario,
+[data-estilo='contorno'] .botao-falar {
+  border-color: var(--linha);
+  box-shadow: 4px 4px 0 var(--linha);
+}
+[data-estilo='contorno'] .botao-primario:active,
+[data-estilo='contorno'] .botao-falar:active {
+  box-shadow: 0 0 0 var(--linha);
+}
+
+[data-estilo='contorno'] .pilula {
+  border-width: 2px;
+  border-color: var(--linha);
+  border-radius: 0.8rem;
+}
+
+[data-estilo='contorno'] .campo {
+  border-radius: 0.9rem;
+  border-width: var(--linha-largura);
+  border-color: var(--linha);
+}
+
+/* Tiles dos símbolos: contorno preto grosso, sombra sólida, sem textura. */
+[data-estilo='contorno'] .botao-simbolo {
+  border-radius: 1.1rem;
+  border-width: var(--linha-largura);
+  border-color: var(--linha) !important;
+  box-shadow: 5px 5px 0 var(--linha);
+}
+[data-estilo='contorno'] .botao-simbolo:active {
+  transform: translate(4px, 4px);
+  box-shadow: 1px 1px 0 var(--linha);
+}
+
+/* O "pulo" do toque vira um empurrão reto para dentro da sombra sólida —
+   combina mais com o resto do estilo do que o efeito de mola do padrão. */
+@keyframes toque-empurra {
+  0% {
+    transform: translate(0, 0);
+    box-shadow: 5px 5px 0 var(--linha);
+  }
+  40% {
+    transform: translate(4px, 4px);
+    box-shadow: 1px 1px 0 var(--linha);
+  }
+  100% {
+    transform: translate(0, 0);
+    box-shadow: 5px 5px 0 var(--linha);
+  }
+}
+[data-estilo='contorno'] .botao-simbolo.tocado {
+  animation: toque-empurra 220ms ease-out;
+}
+
+[data-estilo='contorno'] .capa-pasta::before {
+  display: none;
+}
+[data-estilo='contorno'] .marca-agua {
+  display: none;
+}
+
+[data-estilo='contorno'] .prato-emoji {
+  background: var(--cartao);
+  border: 2px solid var(--linha);
+  box-shadow: none;
+}
+
+[data-estilo='contorno'] .etiqueta-tile {
+  background: var(--cartao);
+  border: 2px solid var(--linha);
+}
+
+[data-estilo='contorno'] .amostra-tile {
+  border-radius: 1rem;
+  border-width: 3px;
+  border-color: var(--linha) !important;
+}
+
+[data-estilo='contorno'] .foto-simbolo {
+  border: 2px solid var(--linha);
+  box-shadow: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-estilo='contorno'] .botao-simbolo.tocado {
+    animation: none !important;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

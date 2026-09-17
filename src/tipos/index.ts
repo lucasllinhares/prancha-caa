@@ -51,6 +51,15 @@ export interface Prancha {
 export type VelocidadeFala = 'lenta' | 'normal' | 'rapida';
 export type TomVoz = 'grave' | 'medio' | 'agudo';
 export type Tema = 'claro' | 'escuro' | 'contraste';
+
+/**
+ * Estilo visual do app inteiro (independente do tema claro/escuro):
+ *  - 'dinamico': o visual padrão do app — tiles com relevo, sombra suave,
+ *    texturas nas capas e cores vivas (referência: apps de jogo/Duolingo).
+ *  - 'contorno': visual alternativo tipo "sticker" — bordas pretas grossas,
+ *    sombra sólida deslocada (sem desfoque) e cores chapadas, sem textura.
+ */
+export type EstiloVisual = 'dinamico' | 'contorno';
 export type Densidade = 4 | 6 | 9 | 12 | 16;
 export type TamanhoFonte = 'pequeno' | 'medio' | 'grande' | 'enorme';
 
@@ -63,6 +72,8 @@ export interface Configuracoes {
   densidade: Densidade;
   tamanhoFonte: TamanhoFonte;
   tema: Tema;
+  /** Estilo visual do app: 'dinamico' (padrão) ou 'contorno'. */
+  estiloVisual: EstiloVisual;
   /** PIN de 4 digitos que protege o modo editor. Vazio = sem bloqueio. */
   pinEditor: string;
   /** Modo varredura (scanning) para usuarios de acionador. */

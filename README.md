@@ -221,6 +221,26 @@ arredondados, botões com relevo), mas cada escolha estética passa pela acessib
 - Os tokens de cor, relevo e tipografia ficam todos em `src/index.css`, em variáveis CSS
   (`--pessoas`, `--acoes`, `--cartao`…): trocar a identidade visual é mexer num só arquivo.
 
+### Dois estilos visuais
+
+Em *Ajustes → Estilo visual* dá para escolher entre dois visuais para o app inteiro (a escolha
+fica salva no perfil, junto com as outras configurações):
+
+| Estilo | Aparência |
+| --- | --- |
+| **Dinâmico** (padrão) | o descrito acima: relevo suave, sombra desfocada e texturas nas capas. |
+| **Contorno** | visual tipo "sticker": contorno preto grosso em tudo, sombra sólida deslocada (sem desfoque) e sem texturas — cores chapadas. |
+
+As cores de cada categoria e símbolo são as mesmas nos dois estilos; só o tratamento de borda e
+sombra muda. A tela de Ajustes mostra os dois lado a lado numa prévia antes de aplicar, e a
+troca só acontece ao tocar em **APLICAR ESTILO** — nada muda sozinho enquanto a pessoa está só
+olhando as opções.
+
+Tecnicamente, o estilo escolhido vira o atributo `data-estilo` no `<html>`, e a diferença toda
+está em um bloco de CSS em `src/index.css` (seção "ESTILO VISUAL ALTERNATIVO: CONTORNO") que
+sobrescreve bordas e sombras — funciona em conjunto com qualquer tema (claro, escuro ou alto
+contraste), porque a cor do contorno vem da própria variável de texto do tema ativo.
+
 ---
 
 ### Movimento

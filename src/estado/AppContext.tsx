@@ -133,6 +133,7 @@ export function ProvedorApp({ children }: { children: ReactNode }) {
     if (!config) return;
     document.documentElement.dataset.tema = config.tema;
     document.documentElement.dataset.fonte = config.tamanhoFonte;
+    document.documentElement.dataset.estilo = config.estiloVisual;
   }, [config]);
 
   /** Atualiza apenas o perfil ativo, mantendo o resto do estado intacto. */

@@ -23,6 +23,7 @@ export const CONFIGURACOES_PADRAO: Configuracoes = {
   densidade: 9,
   tamanhoFonte: 'medio',
   tema: 'claro',
+  estiloVisual: 'dinamico',
   pinEditor: '',
   varreduraAtiva: false,
   varreduraIntervalo: 2,
