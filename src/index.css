@@ -1,0 +1,677 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==========================================================================
+   IDENTIDADE VISUAL
+   --------------------------------------------------------------------------
+   Inspiração: cards grandes e saturados (estilo "bento"), cantos bem
+   arredondados, tipografia bold arredondada (Nunito) e botões com
+   profundidade — o toque afunda o botão, como em app de jogo.
+
+   Regras que a estética NUNCA quebra:
+   - contraste WCAG AA: todo preenchimento vivo usa texto escuro da mesma
+     família de cor (ex.: texto verde-escuro sobre verde-limão);
+   - alvo de toque mínimo de 64x64px;
+   - transições de no máximo 150ms e nada piscando;
+   - prefers-reduced-motion desliga o movimento;
+   - o tema "alto contraste" sobrepõe tudo com preto/branco/amarelo.
+   ========================================================================== */
+
+:root {
+  /* --- Cromo da interface (muda com o tema) --- */
+  --fundo: #eef2ff;
+  --fundo-brilho-1: #c7d7ff;
+  --fundo-brilho-2: #ffe1c2;
+  --cartao: #ffffff;
+  --cartao-2: #f6f8ff;
+  --texto: #0f1533;
+  --texto-suave: #4b5474;
+  --borda: #dbe2f7;
+  --sombra: 0 10px 30px -18px rgba(15, 21, 51, 0.45);
+
+  /* --- Cores de marca --- */
+  --primaria: #3b5bff;
+  --primaria-texto: #ffffff;
+  --primaria-borda: #2942cc;
+  --acento: #58cc02; /* verde "falar" */
+  --acento-texto: #10290a;
+  --acento-borda: #3f9a00;
+  --perigo: #d92d20;
+  --foco: #7c3aed;
+
+  /* --- Cores dos símbolos (Fitzgerald Key em versão saturada) ---
+     Cada categoria tem preenchimento vivo, texto escuro da mesma família
+     (contraste alto) e uma borda inferior mais escura, que dá o relevo. */
+  --pessoas: #ffc93c;
+  --pessoas-texto: #3a2700;
+  --pessoas-borda: #d19700;
+
+  --acoes: #4ade80;
+  --acoes-texto: #04310f;
+  --acoes-borda: #16a34a;
+
+  --descritivos: #7cc4ff;
+  --descritivos-texto: #06243f;
+  --descritivos-borda: #2b82d4;
+
+  --substantivos: #ffa25c;
+  --substantivos-texto: #3b1600;
+  --substantivos-borda: #e0701f;
+
+  --social: #ff93c4;
+  --social-texto: #400523;
+  --social-borda: #db5f98;
+
+  --diversos: #ffffff;
+  --diversos-texto: #0f1533;
+  --diversos-borda: #b9c4e4;
+
+  /* Cores extras: dão uma capa própria para cada pasta da tela inicial. */
+  --roxo: #c9a4ff;
+  --roxo-texto: #23064d;
+  --roxo-borda: #8b5cf6;
+
+  --turquesa: #5fe3d0;
+  --turquesa-texto: #00312b;
+  --turquesa-borda: #14a898;
+
+  --vermelho: #ff8b7b;
+  --vermelho-texto: #3d0a02;
+  --vermelho-borda: #e05a45;
+
+  --lima: #d9f24d;
+  --lima-texto: #232e00;
+  --lima-borda: #9cb800;
+
+  --escala: 1;
+}
+
+/* --- Tema escuro: cromo escuro, símbolos continuam vivos e reconhecíveis --- */
+:root[data-tema='escuro'] {
+  --fundo: #080d1c;
+  --fundo-brilho-1: #1b2a63;
+  --fundo-brilho-2: #3a1d52;
+  --cartao: #141b31;
+  --cartao-2: #1b2340;
+  --texto: #eef2ff;
+  --texto-suave: #b3bdd9;
+  --borda: #303a5c;
+  --sombra: 0 14px 34px -18px rgba(0, 0, 0, 0.8);
+  --primaria: #6b8afd;
+  --primaria-texto: #05102e;
+  --primaria-borda: #3a5bd0;
+  --foco: #c4b5fd;
+  --perigo: #ff6b60;
+}
+
+/* --- Tema de alto contraste: acessibilidade acima da estética --- */
+:root[data-tema='contraste'] {
+  --fundo: #000000;
+  --fundo-brilho-1: #000000;
+  --fundo-brilho-2: #000000;
+  --cartao: #000000;
+  --cartao-2: #000000;
+  --texto: #ffffff;
+  --texto-suave: #ffffff;
+  --borda: #ffffff;
+  --sombra: none;
+  --primaria: #ffff00;
+  --primaria-texto: #000000;
+  --primaria-borda: #ffffff;
+  --acento: #ffff00;
+  --acento-texto: #000000;
+  --acento-borda: #ffffff;
+  --foco: #ffff00;
+  --perigo: #ff7b72;
+}
+
+:root[data-fonte='pequeno'] {
+  --escala: 0.9;
+}
+:root[data-fonte='medio'] {
+  --escala: 1;
+}
+:root[data-fonte='grande'] {
+  --escala: 1.15;
+}
+:root[data-fonte='enorme'] {
+  --escala: 1.3;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  color: var(--texto);
+  font-family: 'Nunito Variable', 'Nunito', ui-rounded, 'SF Pro Rounded', system-ui, -apple-system,
+    'Segoe UI', Roboto, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+  /* Fundo com dois brilhos coloridos bem suaves: dá vida sem atrapalhar a
+     leitura dos símbolos (que são o conteúdo de verdade). */
+  background-color: var(--fundo);
+  background-image: radial-gradient(90vw 55vh at 8% -10%, var(--fundo-brilho-1) 0%, transparent 60%),
+    radial-gradient(70vw 45vh at 105% 5%, var(--fundo-brilho-2) 0%, transparent 55%);
+  background-attachment: fixed;
+}
+
+:root[data-tema='contraste'] body {
+  background-image: none;
+}
+
+/* Foco sempre visível e grosso: essencial para teclado e acionador. */
+:focus-visible {
+  outline: 4px solid var(--foco);
+  outline-offset: 3px;
+}
+
+@layer components {
+  /* Superfície de cartão, usada em barras, listas e formulários. */
+  .superficie {
+    background: var(--cartao);
+    color: var(--texto);
+    border-color: var(--borda);
+  }
+
+  .cartao {
+    @apply rounded-3xl border-2 p-3;
+    background: var(--cartao);
+    border-color: var(--borda);
+    box-shadow: var(--sombra);
+  }
+
+  /* Botão da interface com relevo: a borda inferior mais escura é o "chão",
+     e o toque afunda o botão 3px. */
+  .botao {
+    @apply inline-flex min-h-toque min-w-toque items-center justify-center gap-2
+      rounded-2xl border-2 px-4 py-3 font-extrabold uppercase tracking-tight
+      transition-[transform,box-shadow] duration-rapido;
+    font-size: calc(1rem * var(--escala));
+    background: var(--cartao);
+    color: var(--texto);
+    border-color: var(--borda);
+    box-shadow: 0 4px 0 var(--borda);
+  }
+
+  .botao:active {
+    transform: translateY(3px);
+    box-shadow: 0 1px 0 var(--borda);
+  }
+
+  .botao-primario {
+    background: var(--primaria);
+    color: var(--primaria-texto);
+    border-color: var(--primaria-borda);
+    box-shadow: 0 4px 0 var(--primaria-borda);
+  }
+
+  .botao-primario:active {
+    box-shadow: 0 1px 0 var(--primaria-borda);
+  }
+
+  /* Botão FALAR: o mais importante da tela, por isso tem cor própria. */
+  .botao-falar {
+    background: var(--acento);
+    color: var(--acento-texto);
+    border-color: var(--acento-borda);
+    box-shadow: 0 5px 0 var(--acento-borda);
+  }
+
+  .botao-falar:active {
+    box-shadow: 0 1px 0 var(--acento-borda);
+  }
+
+  .botao:disabled {
+    opacity: 0.4;
+    box-shadow: none;
+    transform: none;
+  }
+
+  /* Etiqueta pequena arredondada (contagem de palavras, atalhos, dicas). */
+  .pilula {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-extrabold uppercase;
+    background: var(--cartao-2);
+    color: var(--texto-suave);
+    border: 2px solid var(--borda);
+  }
+
+  .titulo-tela {
+    font-size: calc(1.6rem * var(--escala));
+    @apply font-black tracking-tight;
+  }
+
+  .rotulo-campo {
+    font-size: calc(1rem * var(--escala));
+    @apply mb-1 block font-extrabold;
+    color: var(--texto);
+  }
+
+  .campo {
+    @apply w-full rounded-2xl border-2 px-4 py-3 font-bold;
+    font-size: calc(1.0625rem * var(--escala));
+    background: var(--cartao-2);
+    color: var(--texto);
+    border-color: var(--borda);
+    min-height: 60px;
+  }
+}
+
+/* ==========================================================================
+   SÍMBOLOS
+   ========================================================================== */
+
+/* Tile do símbolo: preenchimento vivo, relevo embaixo e texto escuro. */
+.botao-simbolo {
+  background: var(--tile);
+  color: var(--tile-texto);
+  border-color: var(--tile-borda);
+  box-shadow: 0 6px 0 var(--tile-borda);
+  transition: transform 150ms ease, box-shadow 150ms ease;
+}
+
+.botao-simbolo:active {
+  transform: translateY(4px);
+  box-shadow: 0 2px 0 var(--tile-borda);
+}
+
+/* Só os tiles de largura definida (grade e faixa do núcleo) servem de
+   container para medir o texto. Nos chips da barra de frase a largura vem do
+   conteúdo, e ali a contenção de tamanho zeraria a largura. */
+.tile-medido {
+  container-type: inline-size;
+}
+
+.tile-pessoas {
+  --tile: var(--pessoas);
+  --tile-texto: var(--pessoas-texto);
+  --tile-borda: var(--pessoas-borda);
+}
+.tile-acoes {
+  --tile: var(--acoes);
+  --tile-texto: var(--acoes-texto);
+  --tile-borda: var(--acoes-borda);
+}
+.tile-descritivos {
+  --tile: var(--descritivos);
+  --tile-texto: var(--descritivos-texto);
+  --tile-borda: var(--descritivos-borda);
+}
+.tile-substantivos {
+  --tile: var(--substantivos);
+  --tile-texto: var(--substantivos-texto);
+  --tile-borda: var(--substantivos-borda);
+}
+.tile-social {
+  --tile: var(--social);
+  --tile-texto: var(--social-texto);
+  --tile-borda: var(--social-borda);
+}
+.tile-diversos {
+  --tile: var(--diversos);
+  --tile-texto: var(--diversos-texto);
+  --tile-borda: var(--diversos-borda);
+}
+.tile-roxo {
+  --tile: var(--roxo);
+  --tile-texto: var(--roxo-texto);
+  --tile-borda: var(--roxo-borda);
+}
+.tile-turquesa {
+  --tile: var(--turquesa);
+  --tile-texto: var(--turquesa-texto);
+  --tile-borda: var(--turquesa-borda);
+}
+.tile-vermelho {
+  --tile: var(--vermelho);
+  --tile-texto: var(--vermelho-texto);
+  --tile-borda: var(--vermelho-borda);
+}
+.tile-lima {
+  --tile: var(--lima);
+  --tile-texto: var(--lima-texto);
+  --tile-borda: var(--lima-borda);
+}
+
+/* ---------------------------------------------------------------------------
+   PADRÃO DE FUNDO DAS CAPAS
+   Além da cor, cada pasta ganha uma textura diferente (bolinhas, listras,
+   grade...). Isso deixa a diferença entre "Sentimentos", "Comida" e "Pessoas"
+   visível até para quem não distingue bem as cores.
+   --------------------------------------------------------------------------- */
+.capa-pasta::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-image: var(--padrao, none);
+  background-size: var(--padrao-tamanho, 18px 18px);
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.tile-pessoas {
+  --padrao: radial-gradient(rgba(0, 0, 0, 0.14) 2.2px, transparent 2.4px);
+  --padrao-tamanho: 16px 16px;
+}
+.tile-acoes {
+  --padrao: repeating-linear-gradient(
+    45deg,
+    rgba(0, 0, 0, 0.1) 0 5px,
+    transparent 5px 12px
+  );
+  --padrao-tamanho: auto;
+}
+.tile-descritivos {
+  --padrao: linear-gradient(rgba(0, 0, 0, 0.09) 2px, transparent 2px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.09) 2px, transparent 2px);
+  --padrao-tamanho: 20px 20px;
+}
+.tile-substantivos {
+  --padrao: radial-gradient(rgba(0, 0, 0, 0.12) 3.4px, transparent 3.6px);
+  --padrao-tamanho: 24px 24px;
+}
+.tile-social {
+  --padrao: repeating-radial-gradient(
+    circle at 20% 20%,
+    rgba(0, 0, 0, 0.1) 0 3px,
+    transparent 3px 14px
+  );
+  --padrao-tamanho: auto;
+}
+.tile-roxo {
+  --padrao: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.1) 0 3px, transparent 3px 16px),
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.1) 0 3px, transparent 3px 16px);
+  --padrao-tamanho: auto;
+}
+.tile-turquesa {
+  --padrao: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.1) 0 4px, transparent 4px 14px);
+  --padrao-tamanho: auto;
+}
+.tile-vermelho {
+  --padrao: repeating-linear-gradient(-45deg, rgba(0, 0, 0, 0.1) 0 6px, transparent 6px 14px);
+  --padrao-tamanho: auto;
+}
+.tile-lima {
+  --padrao: radial-gradient(rgba(0, 0, 0, 0.12) 2.6px, transparent 2.8px),
+    radial-gradient(rgba(0, 0, 0, 0.12) 2.6px, transparent 2.8px);
+  --padrao-tamanho: 22px 22px;
+}
+
+:root[data-tema='contraste'] .capa-pasta::before {
+  display: none;
+}
+
+/* Amostra da cor (miniaturas do editor e seletor de cor): usa as mesmas
+   variáveis do tile, mas sem o relevo. */
+.amostra-tile {
+  background: var(--tile);
+  color: var(--tile-texto);
+  border-color: var(--tile-borda);
+}
+
+/* No tema escuro os tiles brancos ficariam ofuscantes: escurecemos só eles. */
+:root[data-tema='escuro'] .tile-diversos {
+  --tile: #e9eeff;
+  --tile-texto: #0f1533;
+  --tile-borda: #8d9bc4;
+}
+
+/* Círculo claro atrás do desenho: destaca o ícone do fundo colorido do tile.
+   Ele é o container de referência do tamanho do emoji (unidade cqmin), então o
+   desenho SEMPRE cabe inteiro dentro do círculo — nunca é cortado, em nenhuma
+   densidade de grade. */
+.prato-emoji {
+  container-type: size;
+  background: radial-gradient(
+    circle at 34% 26%,
+    rgba(255, 255, 255, 0.97),
+    rgba(255, 255, 255, 0.55)
+  );
+  box-shadow: inset 0 -3px 9px rgba(0, 0, 0, 0.14), 0 2px 6px -2px rgba(0, 0, 0, 0.3);
+}
+
+.prato-emoji .emoji-simbolo {
+  font-size: 58cqmin;
+}
+
+.emoji-simbolo {
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.18));
+  line-height: 1;
+}
+
+:root[data-tema='contraste'] .prato-emoji {
+  background: #ffffff;
+  box-shadow: none;
+}
+
+/* Foto do símbolo: retângulo de cantos arredondados, ocupando o tile. */
+.foto-simbolo {
+  border-radius: 1.1rem;
+  object-fit: cover;
+  box-shadow: 0 3px 8px -3px rgba(0, 0, 0, 0.45);
+}
+
+/* Etiqueta do tile (ex.: "18 palavras" nas pastas). Fundo branco translúcido
+   sobre a cor viva mantém o contraste do texto escuro do próprio tile. */
+.etiqueta-tile {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 9999px;
+  padding: 0.1rem 0.5rem;
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.62);
+  color: var(--tile-texto);
+}
+
+/* No alto contraste a etiqueta vira contorno branco em fundo preto. */
+:root[data-tema='contraste'] .etiqueta-tile {
+  background: transparent;
+  color: #ffffff;
+  border: 2px solid #ffffff;
+}
+
+/* Marca d'água: o mesmo emoji gigante e translúcido no canto do tile de pasta. */
+.marca-agua {
+  position: absolute;
+  right: -6%;
+  bottom: -10%;
+  font-size: 4.2rem;
+  line-height: 1;
+  opacity: 0.12;
+  transform: rotate(-12deg);
+  pointer-events: none;
+}
+
+/* Texto do símbolo: um único tamanho para todos os tiles.
+   A palavra só diminui se fisicamente não couber na largura do tile — o que
+   evita quebra no meio da palavra ("NECESSID ADES") mantendo o tamanho
+   uniforme em praticamente todo o vocabulário. O cálculo usa unidades de
+   container (cqi), então acompanha a largura real do tile. */
+.texto-simbolo {
+  font-size: min(calc(1.1rem * var(--escala)), calc(170cqi / var(--letras, 6)));
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+:root[data-tema='contraste'] .texto-simbolo {
+  text-shadow: none;
+}
+
+/* Alto contraste: tiles viram preto com borda e texto brancos. */
+:root[data-tema='contraste'] .botao-simbolo {
+  background: #000000 !important;
+  color: #ffffff !important;
+  border-color: #ffffff !important;
+  box-shadow: 0 6px 0 #ffffff;
+}
+
+:root[data-tema='contraste'] .prato-emoji {
+  background: transparent;
+  box-shadow: none;
+}
+
+:root[data-tema='contraste'] .marca-agua {
+  display: none;
+}
+
+/* Destaque da varredura automática (scanning) e do foco por teclado. */
+.botao-simbolo[data-varredura='ativo'] {
+  outline: 6px solid var(--foco);
+  outline-offset: 3px;
+  z-index: 1;
+}
+
+/* ==========================================================================
+   MOVIMENTO
+   --------------------------------------------------------------------------
+   O app precisa responder ao toque de forma bem visível — é o que dá a
+   sensação de "vivo" e confirma para a pessoa que o toque funcionou.
+   Regras que seguimos para não virar desconforto sensorial:
+   - nada em laço infinito, exceto o indicador de fala (que existe só
+     enquanto a voz está falando);
+   - nada de piscar, girar rápido ou mudar de cor bruscamente;
+   - toda animação dura entre 150ms e 420ms;
+   - prefers-reduced-motion desliga tudo.
+   ========================================================================== */
+
+@keyframes toque-pop {
+  0% {
+    transform: scale(1) translateY(0);
+  }
+  35% {
+    transform: scale(0.94) translateY(4px);
+  }
+  70% {
+    transform: scale(1.06) translateY(-3px);
+  }
+  100% {
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes onda-toque {
+  0% {
+    transform: scale(0.2);
+    opacity: 0.55;
+  }
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+@keyframes entrada-tile {
+  0% {
+    opacity: 0;
+    transform: translateY(14px) scale(0.94);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes entrada-chip {
+  0% {
+    opacity: 0;
+    transform: scale(0.6) translateY(6px);
+  }
+  60% {
+    transform: scale(1.08);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes barra-voz {
+  0%,
+  100% {
+    transform: scaleY(0.35);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+/* Toque no símbolo: o tile "pula" e uma onda sai do centro. */
+.botao-simbolo.tocado {
+  animation: toque-pop 260ms ease-out;
+}
+
+.onda-toque {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  height: 120%;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.85);
+  animation: onda-toque 380ms ease-out forwards;
+  pointer-events: none;
+}
+
+/* Entrada da grade: os tiles aparecem em sequência rápida ao abrir a pasta,
+   o que mostra visualmente que a tela mudou. */
+.entrando {
+  animation: entrada-tile 260ms ease-out both;
+}
+
+/* Chip novo na barra de frase: aparece com um pop. */
+.chip-novo {
+  animation: entrada-chip 240ms ease-out;
+}
+
+/* Indicador de fala: três barrinhas que sobem e descem enquanto a voz fala. */
+.barra-voz {
+  width: 4px;
+  border-radius: 9999px;
+  background: currentColor;
+  animation: barra-voz 620ms ease-in-out infinite;
+}
+
+.barra-voz:nth-child(2) {
+  animation-delay: 140ms;
+}
+.barra-voz:nth-child(3) {
+  animation-delay: 280ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .botao:active,
+  .botao-simbolo:active {
+    transform: none;
+  }
+  /* Sem movimento nenhum: nem pulo, nem onda, nem barrinhas de voz. */
+  .botao-simbolo.tocado,
+  .entrando,
+  .chip-novo,
+  .barra-voz {
+    animation: none !important;
+  }
+  .onda-toque {
+    display: none;
+  }
+}
