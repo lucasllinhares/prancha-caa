@@ -98,7 +98,8 @@ src/
 │
 ├── tipos/                      # tipos TypeScript de todo o app (símbolo, prancha, perfil...)
 ├── dados/
-│   ├── vocabularioInicial.ts   # vocabulário inicial em PT-BR (núcleo + 8 categorias)
+│   ├── vocabularioInicial.ts   # vocabulário inicial em PT-BR (núcleo + 14 categorias)
+│   ├── modelos.ts              # pranchetas prontas (Escola, Casa, Refeição...) e banco de palavras
 │   ├── coresFitzgerald.ts      # padrão Fitzgerald Key (cores por categoria gramatical)
 │   └── emojisSugeridos.ts      # emojis oferecidos no editor
 │
@@ -112,12 +113,17 @@ src/
 │   ├── frase.ts                # montagem da frase com regras de concordância
 │   └── sintetizador.ts         # Web Speech API (voz pt-BR, velocidade, tom)
 │
+├── utilidades/
+│   └── larguraTexto.ts         # mede a largura real de cada palavra para nunca cortar texto
+│
 ├── ganchos/
 │   └── useLayoutGrade.ts       # colunas da grade por orientação e densidade
 │
 ├── componentes/
 │   ├── BarraFrase.tsx          # barra fixa no topo com FALAR / APAGAR / LIMPAR
 │   ├── BotaoSimbolo.tsx        # botão de símbolo (imagem em cima, texto em caixa alta embaixo)
+│   ├── BancoDePalavras.tsx     # escolher palavras prontas para uma categoria
+│   ├── GaleriaModelos.tsx      # escolher uma prancheta pronta ou um modelo salvo
 │   ├── EscolherEmoji.tsx       # seletor de emoji do editor
 │   └── BloqueioPin.tsx         # teclado numérico do PIN de 4 dígitos
 │
@@ -199,6 +205,63 @@ Pensado para mãe, pai ou terapeuta usar sem saber tecnologia:
 
 Para impedir que a criança entre no editor sem querer, ative o **PIN de 4 dígitos** em
 *Ajustes → Bloqueio da edição*.
+
+### Personalizar categorias e palavras
+
+Na aba **Editar** a pessoa monta a prancheta do jeito que precisa:
+
+- **🗂️ Nova categoria**: escolhe nome, ícone e cor. Ela aparece como um bloco na tela de Início;
+- **✏️ Editar categoria**: muda nome, ícone e cor (o bloco no Início acompanha);
+- **🗑️ Excluir categoria** (com confirmação);
+- **📚 Palavras prontas**: banco com todas as palavras de fábrica, com busca — toca nas que quer
+  e elas entram na categoria, sem digitar nem escolher ícone;
+- em cada palavra, o campo **"Em qual categoria esta palavra fica?"** move a palavra de uma
+  categoria para outra;
+- reordenar as palavras com ⬆️ ⬇️ ou arrastando.
+
+---
+
+## Pranchetas prontas e uma prancheta por aluno
+
+Cada **perfil** é a prancheta de uma pessoa. Ao criar um perfil (aba **Perfis**), escolhe-se de
+qual modelo ele começa — o aluno recebe uma **cópia** e pode mudar tudo depois sem afetar os
+outros:
+
+| Modelo | O que traz |
+| --- | --- |
+| Completa | todas as categorias de fábrica |
+| Escola | sentimentos, necessidades, social, pessoas, lanche, dias, números, cores |
+| Casa | comida, rotina, higiene, ações, lugares |
+| Refeição, Brincadeiras, Terapia, Passeio | conjuntos menores para cada atividade |
+
+Também é possível **somar** as categorias de um modelo a uma prancheta que já existe
+(*Editar → Adicionar categorias de um modelo*); categorias com o mesmo nome não se repetem.
+
+**Publicar / compartilhar** uma prancheta:
+
+- **⭐ Salvar como modelo**: guarda a prancheta de um aluno em *Minhas pranchetas*, para criar a
+  de outros alunos a partir dela;
+- **⬇️ Exportar prancheta**: gera um único arquivo `.json` com todas as categorias, imagens e
+  vozes gravadas; **⬆️ Importar prancheta** (aba Perfis) recebe o arquivo de um colega ou
+  terapeuta e cria um novo perfil. Tudo continua sem servidor e sem enviar dados a ninguém.
+
+---
+
+## Texto que não corta
+
+Nenhuma palavra é cortada, em nenhum tamanho de tela:
+
+- `src/utilidades/larguraTexto.ts` mede a largura real de cada palavra (canvas, mesma fonte do
+  botão) e o texto se ajusta ao bloco (`container query units`), com piso legível de 10px;
+- o número de colunas da grade diminui sozinho quando existe uma palavra longa
+  (ex.: "envergonhado") que não caberia numa coluna estreita;
+- os blocos pequenos (núcleo, sugestões) ganharam mais altura e espaço interno;
+- em *Ajustes → Tela → **Tamanho dos blocos***, a opção **GRANDE** dá blocos mais altos, letra
+  maior e uma coluna a menos.
+
+Verificado medindo o DOM: 611 blocos de 14 categorias em 320, 375, 820 e 1440px, nos dois
+tamanhos de bloco, sem nenhuma palavra cortada.
+
 
 ---
 

@@ -3,8 +3,8 @@ import { useApp } from '../estado/AppContext';
 import { BarraFrase } from '../componentes/BarraFrase';
 import { BotaoSimbolo } from '../componentes/BotaoSimbolo';
 import { ReforcoPositivo } from '../componentes/ReforcoPositivo';
-import { classesDaCor } from '../dados/coresFitzgerald';
 import { useLayoutGrade } from '../ganchos/useLayoutGrade';
+import { larguraEmEm, useFontesProntas } from '../utilidades/larguraTexto';
 import { SIMBOLOS_NUCLEO } from '../dados/vocabularioInicial';
 import type { Simbolo } from '../tipos';
 
@@ -47,6 +47,29 @@ export function Comunicador() {
     }
   }, [pranchas, pilha, pranchaInicial.id]);
 
+  // Largura útil da área de símbolos (para escolher quantas colunas cabem).
+  const refMain = useRef<HTMLElement>(null);
+  const [larguraMain, setLarguraMain] = useState(0);
+  useEffect(() => {
+    const el = refMain.current;
+    if (!el) return;
+    // Mede na hora (síncrono) e de novo a cada mudança de tamanho.
+    const medir = () => {
+      const estilo = getComputedStyle(el);
+      setLarguraMain(
+        el.clientWidth - parseFloat(estilo.paddingLeft) - parseFloat(estilo.paddingRight)
+      );
+    };
+    medir();
+    window.addEventListener('resize', medir);
+    const observador = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(medir) : null;
+    observador?.observe(el);
+    return () => {
+      window.removeEventListener('resize', medir);
+      observador?.disconnect();
+    };
+  }, []);
+
   // A prancha de Início lista categorias (pastas) — todas aparecem juntas,
   // sem paginar, para a pessoa ver o mapa completo do app de uma vez. A
   // paginação continua valendo dentro de cada categoria, onde pode haver
@@ -64,16 +87,36 @@ export function Comunicador() {
     [pranchaAtual, paginaSegura, porPagina, semPaginacao]
   );
 
-  // Na tela de Início uma coluna a mais cabe bem (os tiles de categoria têm
-  // um texto curto só, diferente das palavras) — isso reduz quantas
-  // fileiras são necessárias para ver as 14+ categorias.
-  const colunasBase = semPaginacao ? colunasTela + 1 : colunasTela;
+  // Em telas maiores (tablet/computador) a tela de Início ganha uma coluna a
+  // mais, para ver mais categorias de uma vez. No celular em pé ficam 3
+  // colunas: nomes longos como "NECESSIDADES" precisam da largura para caber
+  // inteiros sem quebrar no meio.
+  const colunasBase = semPaginacao && colunasTela >= 4 ? colunasTela + 1 : colunasTela;
 
   // Quando a página tem menos símbolos do que colunas cabem na tela (ex.:
   // últimos 2 itens de uma categoria), usamos só as colunas necessárias —
   // assim a fileira final não fica esticada, com os tiles enormes e vazios
   // do lado. É esse valor (não o da tela) que manda na grade e nas setas.
-  const colunas = Math.max(1, Math.min(colunasBase, simbolosVisiveis.length || colunasBase));
+  // Com "blocos grandes" (Ajustes), uma coluna a menos: cada bloco fica mais
+  // largo — é a folga que faz palavras longas caberem inteiras.
+  const colunasFinal = config.tamanhoBlocos === 'grande' ? Math.max(2, colunasBase - 1) : colunasBase;
+
+  // Colunas que a maior palavra da página permite: cada bloco precisa ser
+  // largo o bastante para a palavra caber inteira numa letra de pelo menos
+  // ~10,5px. Se não for, usamos menos colunas (blocos mais largos) — assim
+  // nenhuma palavra, nem as que a própria pessoa criar, é cortada ou quebrada.
+  const fontesProntas = useFontesProntas();
+  const colunasPelaPalavra = useMemo(() => {
+    if (larguraMain <= 0) return colunasFinal;
+    const emMaximo = simbolosVisiveis.reduce((max, s) => Math.max(max, larguraEmEm(s.texto)), 0);
+    const larguraMinimaBloco = emMaximo * 10.5 + 18; // + borda e margem interna
+    const espaco = 8; // espaço entre blocos
+    return Math.max(2, Math.floor((larguraMain + espaco) / (larguraMinimaBloco + espaco)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [larguraMain, simbolosVisiveis, colunasFinal, fontesProntas]);
+
+  const colunasPossiveis = Math.min(colunasFinal, colunasPelaPalavra);
+  const colunas = Math.max(1, Math.min(colunasPossiveis, simbolosVisiveis.length || colunasPossiveis));
 
   const nucleo = config.mostrarNucleo ? SIMBOLOS_NUCLEO : [];
   /** Ordem usada pela varredura e pelas setas do teclado. */
@@ -280,21 +323,14 @@ export function Comunicador() {
         <div className="flex items-center gap-2 overflow-x-auto px-2 pb-1 pt-1">
           <span className="pilula shrink-0">💡 sugestões</span>
           {sugestoes.map((simbolo) => (
-            <button
-              key={simbolo.id}
-              type="button"
-              className={`botao-simbolo tile-medido flex h-16 w-16 shrink-0 flex-col items-center justify-center gap-0 rounded-2xl border-2 p-1 text-center ${classesDaCor(
-                simbolo.cor
-              )}`}
-              onClick={() => ativarSimbolo(simbolo)}
-            >
-              <span aria-hidden="true" className="text-xl leading-none">
-                {simbolo.emoji || '🔤'}
-              </span>
-              <span className="texto-simbolo w-full truncate font-black uppercase">
-                {simbolo.texto}
-              </span>
-            </button>
+            <div key={simbolo.id} className="h-[80px] w-[76px] shrink-0">
+              <BotaoSimbolo
+                simbolo={simbolo}
+                imagemUrl={simbolo.imagemId ? imagens[simbolo.imagemId] : undefined}
+                onAtivar={ativarSimbolo}
+                compacto
+              />
+            </div>
           ))}
         </div>
       )}
@@ -305,7 +341,10 @@ export function Comunicador() {
           normalmente já cabe inteira (linhas com teto de 22vh); na tela de
           Início, com todas as 14+ categorias juntas, é o próprio `main`
           que rola para mostrar o resto. */}
-      <main className="relative flex min-h-0 flex-1 flex-col overflow-y-auto p-2 sm:p-3 lg:p-4">
+      <main
+        ref={refMain}
+        className="relative flex min-h-0 flex-1 flex-col overflow-y-auto p-2 sm:p-3 lg:p-4"
+      >
         {config.varreduraAtiva && (
           // Durante a varredura, um toque em qualquer lugar da área de
           // símbolos seleciona o item que está destacado.
@@ -338,11 +377,11 @@ export function Comunicador() {
               // disponível, com teto de 22vh (senão, em telas altas e
               // estreitas, os símbolos viravam retângulos compridos).
               gridTemplateRows: semPaginacao
-                ? `repeat(${Math.max(1, Math.ceil(simbolosVisiveis.length / colunas))}, minmax(92px, auto))`
+                ? `repeat(${Math.max(1, Math.ceil(simbolosVisiveis.length / colunas))}, minmax(calc(100px + var(--bloco-extra, 0px)), auto))`
                 : `repeat(${Math.max(
                     1,
                     Math.ceil(simbolosVisiveis.length / colunas)
-                  )}, minmax(64px, 22vh))`
+                  )}, minmax(calc(92px + var(--bloco-extra, 0px)), 22vh))`
             }}
           >
             {simbolosVisiveis.map((simbolo, i) => {
@@ -396,10 +435,15 @@ export function Comunicador() {
         <footer className="sticky bottom-0 z-30 px-2 pb-2 sm:px-3 lg:px-4" aria-label="Vocabulário nuclear">
           <div
             className="cartao grid gap-1.5 p-2 sm:gap-2"
-            style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(58px, 1fr))' }}
+            style={{
+              // Colunas de ~64px (alvo de toque) e linhas de 84px:
+              // dá folga para ícone + palavra em até duas linhas ("NÃO QUERO").
+              gridTemplateColumns: 'repeat(auto-fill, minmax(58px, 1fr))',
+              gridAutoRows: 'minmax(calc(84px + var(--bloco-extra, 0px)), auto)'
+            }}
           >
             {SIMBOLOS_NUCLEO.map((simbolo, i) => (
-              <div key={simbolo.id} className="aspect-square">
+              <div key={simbolo.id} className="min-h-0">
                 <BotaoSimbolo
                   ref={(el) => {
                     refsBotoes.current[i] = el;

@@ -117,7 +117,7 @@ export function BarraFrase() {
           </button>
           <button
             type="button"
-            className="botao flex-1"
+            className="botao min-w-0 flex-1 flex-col gap-0 px-1 text-[13px] leading-tight sm:flex-row sm:gap-2 sm:px-4 sm:text-base"
             onClick={apagarUltimo}
             disabled={vazia}
             aria-label="Apagar a última palavra"
@@ -126,7 +126,7 @@ export function BarraFrase() {
           </button>
           <button
             type="button"
-            className="botao flex-1"
+            className="botao min-w-0 flex-1 flex-col gap-0 px-1 text-[13px] leading-tight sm:flex-row sm:gap-2 sm:px-4 sm:text-base"
             onClick={limparFrase}
             disabled={vazia}
             aria-label="Limpar a frase toda"

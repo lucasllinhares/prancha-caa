@@ -9,10 +9,13 @@ import {
   type ReactNode
 } from 'react';
 import type {
+  ArquivoPacote,
   ArquivoPranchaExportada,
   Configuracoes,
+  CorFitzgerald,
   EstadoPersistido,
   FraseHistorico,
+  ModeloUsuario,
   Perfil,
   Prancha,
   Rotina,
@@ -22,16 +25,78 @@ import {
   VERSAO_DADOS,
   carregarEstado,
   criarPerfil,
+  excluirModeloArmazenado,
+  lerModelo,
   lerTodasImagens,
   lerTodosAudios,
   salvarAudio,
   salvarEstado,
-  salvarImagem
+  salvarImagem,
+  salvarModelo
 } from '../armazenamento/db';
+import {
+  MODELOS_PRONTOS,
+  copiarDoBanco,
+  montarCategorias,
+  montarPranchasDoModelo,
+  type CategoriaMontada
+} from '../dados/modelos';
 import { montarFrase, textoDoSimbolo } from '../fala/frase';
 import { falar as falarTexto, pararFala } from '../fala/sintetizador';
 import { tocarAudioGravado } from '../fala/gravador';
 import { novoId } from '../utilidades/id';
+
+/** Dados de uma categoria (pasta) para criar ou editar. */
+export interface DadosCategoria {
+  nome: string;
+  emoji: string;
+  cor: CorFitzgerald;
+}
+
+/** Baixa um objeto como arquivo .json. */
+function baixarArquivo(nomeArquivo: string, conteudo: unknown) {
+  const blob = new Blob([JSON.stringify(conteudo, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = nomeArquivo;
+  link.click();
+  window.setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+const nomeSeguro = (nome: string) => nome.toLowerCase().replace(/[^a-z0-9]+/gi, '-');
+
+/**
+ * Transforma as pranchas de um modelo do usuário em categorias novas (ids
+ * novos em tudo), prontas para serem somadas a outro perfil.
+ */
+function categoriasDoPacote(pranchas: Prancha[]): CategoriaMontada[] {
+  const inicial = pranchas.find((p) => p.inicial);
+  const categorias = pranchas.filter((p) => !p.inicial);
+  const novosIds: Record<string, string> = {};
+  categorias.forEach((c) => {
+    novosIds[c.id] = novoId('prancha');
+  });
+  return categorias.map((c) => {
+    const idNovo = novosIds[c.id];
+    const botaoOriginal = inicial?.simbolos.find((s) => s.pranchaDestinoId === c.id);
+    return {
+      prancha: {
+        id: idNovo,
+        nome: c.nome,
+        emoji: c.emoji,
+        simbolos: c.simbolos.map((s) => ({
+          ...s,
+          id: novoId('sim'),
+          pranchaDestinoId: s.pranchaDestinoId ? novosIds[s.pranchaDestinoId] : undefined
+        }))
+      },
+      botao: botaoOriginal
+        ? { ...botaoOriginal, id: novoId('sim'), pranchaDestinoId: idNovo }
+        : { id: novoId('sim'), texto: c.nome, emoji: c.emoji, cor: 'diversos', pranchaDestinoId: idNovo }
+    };
+  });
+}
 
 const MAX_HISTORICO = 30;
 /** Quantos símbolos as sugestões mostram no máximo. */
@@ -79,7 +144,8 @@ interface ValorContexto {
 
   // Perfis
   trocarPerfil: (id: string) => void;
-  adicionarPerfil: (nome: string, fotoDataUrl?: string) => Promise<void>;
+  /** Cria o perfil (prancheta de um aluno), opcionalmente a partir de um modelo. */
+  adicionarPerfil: (nome: string, fotoDataUrl?: string, modeloId?: string) => Promise<void>;
   renomearPerfil: (id: string, nome: string) => void;
   definirFotoPerfil: (id: string, dataUrl: string) => Promise<void>;
   excluirPerfil: (id: string) => void;
@@ -109,6 +175,22 @@ interface ValorContexto {
   // Exportação / importação
   exportarPrancha: (pranchaId: string) => void;
   importarPrancha: (conteudoJson: string) => Promise<string>;
+
+  // Categorias e palavras (personalização da prancheta)
+  criarCategoria: (dados: DadosCategoria) => string;
+  editarCategoria: (pranchaId: string, dados: DadosCategoria) => void;
+  transferirSimbolo: (deId: string, simboloId: string, paraId: string) => void;
+  /** Devolve quantas palavras foram realmente adicionadas (repetidas são ignoradas). */
+  adicionarSimbolosProntos: (pranchaId: string, simbolos: Simbolo[]) => number;
+
+  // Modelos de prancheta e pranchetas completas
+  modelosUsuario: ModeloUsuario[];
+  /** Soma as categorias de um modelo ao perfil atual; devolve quantas entraram. */
+  aplicarModelo: (modeloId: string) => Promise<number>;
+  salvarPerfilComoModelo: (perfilId: string, nome: string, emoji: string) => Promise<void>;
+  excluirModelo: (id: string) => Promise<void>;
+  exportarPerfil: (perfilId: string) => void;
+  importarPerfil: (conteudoJson: string) => Promise<string>;
 }
 
 const Contexto = createContext<ValorContexto | null>(null);
@@ -166,6 +248,7 @@ export function ProvedorApp({ children }: { children: ReactNode }) {
     if (!config) return;
     document.documentElement.dataset.tema = config.tema;
     document.documentElement.dataset.fonte = config.tamanhoFonte;
+    document.documentElement.dataset.blocos = config.tamanhoBlocos;
     document.documentElement.dataset.estilo = config.estiloVisual;
   }, [config]);
 
@@ -373,8 +456,33 @@ export function ProvedorApp({ children }: { children: ReactNode }) {
     setEstado((anterior) => (anterior ? { ...anterior, perfilAtivoId: id } : anterior));
   }, []);
 
-  const adicionarPerfil = useCallback(async (nome: string, fotoDataUrl?: string) => {
-    const novo = criarPerfil(nome.trim() || 'Novo perfil');
+  /** Guarda imagens e áudios no armazenamento e no cache em memória. */
+  const registrarMidias = useCallback(
+    async (imgs: Record<string, string>, auds: Record<string, string>) => {
+      for (const [id, url] of Object.entries(imgs)) await salvarImagem(id, url);
+      for (const [id, url] of Object.entries(auds)) await salvarAudio(id, url);
+      if (Object.keys(imgs).length) setImagens((atual) => ({ ...atual, ...imgs }));
+      if (Object.keys(auds).length) setAudios((atual) => ({ ...atual, ...auds }));
+    },
+    []
+  );
+
+  /** As pranchas de um modelo pronto ou de um modelo salvo pelo usuário. */
+  const resolverModelo = useCallback(
+    async (modeloId: string): Promise<Prancha[] | null> => {
+      const pronto = MODELOS_PRONTOS.find((m) => m.id === modeloId);
+      if (pronto) return montarPranchasDoModelo(pronto);
+      const pacote = await lerModelo(modeloId);
+      if (!pacote) return null;
+      await registrarMidias(pacote.imagens ?? {}, pacote.audios ?? {});
+      return JSON.parse(JSON.stringify(pacote.pranchas)) as Prancha[];
+    },
+    [registrarMidias]
+  );
+
+  const adicionarPerfil = useCallback(async (nome: string, fotoDataUrl?: string, modeloId?: string) => {
+    const pranchasDoModelo = modeloId ? await resolverModelo(modeloId) : null;
+    const novo = criarPerfil(nome.trim() || 'Novo perfil', pranchasDoModelo ?? undefined);
     if (fotoDataUrl) {
       const idImagem = novoId('img');
       await salvarImagem(idImagem, fotoDataUrl);
@@ -385,7 +493,7 @@ export function ProvedorApp({ children }: { children: ReactNode }) {
       anterior ? { ...anterior, perfis: [...anterior.perfis, novo], perfilAtivoId: novo.id } : anterior
     );
     setFrase([]);
-  }, []);
+  }, [resolverModelo]);
 
   const renomearPerfil = useCallback((id: string, nome: string) => {
     setEstado((anterior) =>
@@ -634,10 +742,271 @@ export function ProvedorApp({ children }: { children: ReactNode }) {
         }))
       };
 
-      alterarPerfilAtivo((p) => ({ ...p, pranchas: [...p.pranchas, prancha] }));
+      // A categoria importada ganha um bloco no Início — sem ele não daria
+      // para chegar nela na tela principal.
+      const botao: Simbolo = {
+        id: novoId('sim'),
+        texto: prancha.nome,
+        emoji: prancha.emoji ?? '📁',
+        cor: 'diversos',
+        pranchaDestinoId: prancha.id
+      };
+      alterarPerfilAtivo((p) => ({
+        ...p,
+        pranchas: [
+          ...p.pranchas.map((pr) =>
+            pr.inicial ? { ...pr, simbolos: [...pr.simbolos, botao] } : pr
+          ),
+          prancha
+        ]
+      }));
       return prancha.nome;
     },
     [alterarPerfilAtivo]
+  );
+
+  // --- Categorias e palavras (personalização da prancheta) -------------------
+
+  /** Cria uma categoria nova: a prancha vazia + o botão que a abre no Início. */
+  const criarCategoria = useCallback(
+    (dados: DadosCategoria): string => {
+      const id = novoId('prancha');
+      alterarPerfilAtivo((p) => ({
+        ...p,
+        pranchas: [
+          ...p.pranchas.map((pr) =>
+            pr.inicial
+              ? {
+                  ...pr,
+                  simbolos: [
+                    ...pr.simbolos,
+                    {
+                      id: novoId('sim'),
+                      texto: dados.nome,
+                      emoji: dados.emoji,
+                      cor: dados.cor,
+                      pranchaDestinoId: id
+                    }
+                  ]
+                }
+              : pr
+          ),
+          { id, nome: dados.nome, emoji: dados.emoji, simbolos: [] }
+        ]
+      }));
+      return id;
+    },
+    [alterarPerfilAtivo]
+  );
+
+  /** Muda nome, ícone e cor de uma categoria — na prancha e em todos os botões que a abrem. */
+  const editarCategoria = useCallback(
+    (pranchaId: string, dados: DadosCategoria) => {
+      alterarPerfilAtivo((p) => ({
+        ...p,
+        pranchas: p.pranchas.map((pr) =>
+          pr.id === pranchaId
+            ? { ...pr, nome: dados.nome, emoji: dados.emoji }
+            : {
+                ...pr,
+                simbolos: pr.simbolos.map((s) =>
+                  s.pranchaDestinoId === pranchaId
+                    ? { ...s, texto: dados.nome, textoFala: undefined, emoji: dados.emoji, cor: dados.cor }
+                    : s
+                )
+              }
+        )
+      }));
+    },
+    [alterarPerfilAtivo]
+  );
+
+  /** Move um símbolo de uma categoria para outra. */
+  const transferirSimbolo = useCallback(
+    (deId: string, simboloId: string, paraId: string) => {
+      alterarPerfilAtivo((p) => {
+        if (deId === paraId) return p;
+        const simbolo = p.pranchas.find((pr) => pr.id === deId)?.simbolos.find((s) => s.id === simboloId);
+        // Uma pasta não pode ir parar dentro dela mesma.
+        if (!simbolo || simbolo.pranchaDestinoId === paraId) return p;
+        return {
+          ...p,
+          pranchas: p.pranchas.map((pr) =>
+            pr.id === deId
+              ? { ...pr, simbolos: pr.simbolos.filter((s) => s.id !== simboloId) }
+              : pr.id === paraId
+                ? { ...pr, simbolos: [...pr.simbolos, simbolo] }
+                : pr
+          )
+        };
+      });
+    },
+    [alterarPerfilAtivo]
+  );
+
+  /** Acrescenta palavras prontas (do banco) a uma categoria, sem repetir as que já existem. */
+  const adicionarSimbolosProntos = useCallback(
+    (pranchaId: string, simbolos: Simbolo[]): number => {
+      const alvo = perfil?.pranchas.find((pr) => pr.id === pranchaId);
+      if (!alvo) return 0;
+      const jaTem = new Set(alvo.simbolos.map((s) => s.texto.trim().toLowerCase()));
+      const novos = simbolos
+        .filter((s) => !jaTem.has(s.texto.trim().toLowerCase()))
+        .map(copiarDoBanco);
+      if (novos.length === 0) return 0;
+      alterarPrancha(pranchaId, (pr) => ({ ...pr, simbolos: [...pr.simbolos, ...novos] }));
+      return novos.length;
+    },
+    [perfil, alterarPrancha]
+  );
+
+  // --- Modelos de prancheta e pranchetas completas ------------------------------
+
+  const modelosUsuario = useMemo(() => estado?.modelos ?? [], [estado?.modelos]);
+
+  /** Pacote (para exportar ou guardar como modelo) com as pranchas de um perfil. */
+  const montarPacote = useCallback(
+    (p: Perfil, nome: string, emoji?: string): ArquivoPacote => {
+      const imgs: Record<string, string> = {};
+      const auds: Record<string, string> = {};
+      for (const pr of p.pranchas) {
+        for (const s of pr.simbolos) {
+          if (s.imagemId && imagens[s.imagemId]) imgs[s.imagemId] = imagens[s.imagemId];
+          if (s.audioId && audios[s.audioId]) auds[s.audioId] = audios[s.audioId];
+        }
+      }
+      return {
+        formato: 'prancha-caa-pacote',
+        versao: VERSAO_DADOS,
+        exportadoEm: new Date().toISOString(),
+        nome,
+        emoji,
+        pranchas: JSON.parse(JSON.stringify(p.pranchas)) as Prancha[],
+        imagens: imgs,
+        audios: auds
+      };
+    },
+    [imagens, audios]
+  );
+
+  const aplicarModelo = useCallback(
+    async (modeloId: string): Promise<number> => {
+      if (!perfil) return 0;
+      let categorias: CategoriaMontada[] = [];
+      const pronto = MODELOS_PRONTOS.find((m) => m.id === modeloId);
+      if (pronto) {
+        categorias = montarCategorias(pronto);
+      } else {
+        const pacote = await lerModelo(modeloId);
+        if (!pacote) return 0;
+        await registrarMidias(pacote.imagens ?? {}, pacote.audios ?? {});
+        categorias = categoriasDoPacote(pacote.pranchas);
+      }
+      // Categorias com o mesmo nome de alguma que já existe não entram de novo.
+      const existentes = new Set(
+        perfil.pranchas.filter((p) => !p.inicial).map((p) => p.nome.trim().toLowerCase())
+      );
+      const novas = categorias.filter((c) => !existentes.has(c.prancha.nome.trim().toLowerCase()));
+      if (novas.length === 0) return 0;
+      alterarPerfilAtivo((p) => ({
+        ...p,
+        pranchas: [
+          ...p.pranchas.map((pr) =>
+            pr.inicial ? { ...pr, simbolos: [...pr.simbolos, ...novas.map((n) => n.botao)] } : pr
+          ),
+          ...novas.map((n) => n.prancha)
+        ]
+      }));
+      return novas.length;
+    },
+    [perfil, registrarMidias, alterarPerfilAtivo]
+  );
+
+  const salvarPerfilComoModelo = useCallback(
+    async (perfilId: string, nome: string, emoji: string) => {
+      const p = estado?.perfis.find((x) => x.id === perfilId);
+      if (!p) return;
+      const id = novoId('modelo');
+      const titulo = nome.trim() || p.nome;
+      await salvarModelo(id, montarPacote(p, titulo, emoji));
+      const ficha: ModeloUsuario = {
+        id,
+        nome: titulo,
+        emoji,
+        criadoEm: Date.now(),
+        totalCategorias: p.pranchas.filter((x) => !x.inicial).length
+      };
+      setEstado((anterior) =>
+        anterior ? { ...anterior, modelos: [...(anterior.modelos ?? []), ficha] } : anterior
+      );
+    },
+    [estado?.perfis, montarPacote]
+  );
+
+  const excluirModelo = useCallback(async (id: string) => {
+    await excluirModeloArmazenado(id);
+    setEstado((anterior) =>
+      anterior
+        ? { ...anterior, modelos: (anterior.modelos ?? []).filter((m) => m.id !== id) }
+        : anterior
+    );
+  }, []);
+
+  const exportarPerfil = useCallback(
+    (perfilId: string) => {
+      const p = estado?.perfis.find((x) => x.id === perfilId);
+      if (!p) return;
+      baixarArquivo(`prancheta-${nomeSeguro(p.nome)}.json`, montarPacote(p, p.nome));
+    },
+    [estado?.perfis, montarPacote]
+  );
+
+  const importarPerfil = useCallback(
+    async (conteudoJson: string): Promise<string> => {
+      const dados = JSON.parse(conteudoJson) as ArquivoPacote;
+      if (
+        dados?.formato !== 'prancha-caa-pacote' ||
+        !Array.isArray(dados.pranchas) ||
+        dados.pranchas.length === 0
+      ) {
+        throw new Error('Este arquivo não é uma prancheta completa do Prancha CAA.');
+      }
+
+      // Imagens e áudios ganham ids novos, para não colidirem com os daqui.
+      const mapaImg: Record<string, string> = {};
+      const mapaAud: Record<string, string> = {};
+      const novasImg: Record<string, string> = {};
+      const novosAud: Record<string, string> = {};
+      for (const [antigo, url] of Object.entries(dados.imagens ?? {})) {
+        const novo = novoId('img');
+        mapaImg[antigo] = novo;
+        novasImg[novo] = url;
+      }
+      for (const [antigo, url] of Object.entries(dados.audios ?? {})) {
+        const novo = novoId('audio');
+        mapaAud[antigo] = novo;
+        novosAud[novo] = url;
+      }
+      await registrarMidias(novasImg, novosAud);
+
+      const pranchas: Prancha[] = dados.pranchas.map((pr) => ({
+        ...pr,
+        simbolos: pr.simbolos.map((s) => ({
+          ...s,
+          imagemId: s.imagemId ? mapaImg[s.imagemId] : undefined,
+          audioId: s.audioId ? mapaAud[s.audioId] : undefined
+        }))
+      }));
+
+      const nome = dados.nome?.trim() || 'Prancheta importada';
+      const novo = criarPerfil(nome, pranchas);
+      setEstado((anterior) =>
+        anterior ? { ...anterior, perfis: [...anterior.perfis, novo], perfilAtivoId: novo.id } : anterior
+      );
+      setFrase([]);
+      return nome;
+    },
+    [registrarMidias]
   );
 
   const valor = useMemo<ValorContexto | null>(() => {
@@ -684,7 +1053,17 @@ export function ProvedorApp({ children }: { children: ReactNode }) {
       definirAudioSimbolo,
       removerAudioSimbolo,
       exportarPrancha,
-      importarPrancha
+      importarPrancha,
+      criarCategoria,
+      editarCategoria,
+      transferirSimbolo,
+      adicionarSimbolosProntos,
+      modelosUsuario,
+      aplicarModelo,
+      salvarPerfilComoModelo,
+      excluirModelo,
+      exportarPerfil,
+      importarPerfil
     };
   }, [
     estado,
@@ -726,7 +1105,17 @@ export function ProvedorApp({ children }: { children: ReactNode }) {
     definirAudioSimbolo,
     removerAudioSimbolo,
     exportarPrancha,
-    importarPrancha
+    importarPrancha,
+    criarCategoria,
+    editarCategoria,
+    transferirSimbolo,
+    adicionarSimbolosProntos,
+    modelosUsuario,
+    aplicarModelo,
+    salvarPerfilComoModelo,
+    excluirModelo,
+    exportarPerfil,
+    importarPerfil
   ]);
 
   if (!valor) {

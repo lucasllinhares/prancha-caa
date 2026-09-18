@@ -2,6 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useApp } from '../estado/AppContext';
 import { CORES_FITZGERALD, classesDaCor } from '../dados/coresFitzgerald';
 import { EscolherEmoji } from '../componentes/EscolherEmoji';
+import { BancoDePalavras } from '../componentes/BancoDePalavras';
+import { GaleriaModelos } from '../componentes/GaleriaModelos';
+import { MODELOS_PRONTOS } from '../dados/modelos';
 import { lerComoTexto, redimensionarImagem } from '../utilidades/imagem';
 import {
   gravacaoDisponivel,
@@ -18,6 +21,8 @@ interface Rascunho {
   emoji: string;
   cor: CorFitzgerald;
   pranchaDestinoId: string;
+  /** Categoria onde o símbolo fica (mudar aqui move o símbolo de categoria). */
+  categoriaId: string;
   /** Imagem nova escolhida agora (data URL já redimensionada). */
   imagemNova?: string;
   /** Imagem que já estava salva no símbolo. */
@@ -33,8 +38,17 @@ const RASCUNHO_VAZIO: Rascunho = {
   textoFala: '',
   emoji: '',
   cor: 'diversos',
-  pranchaDestinoId: ''
+  pranchaDestinoId: '',
+  categoriaId: ''
 };
+
+/** Formulário de categoria (nova ou em edição). */
+interface FormCategoria {
+  modo: 'nova' | 'editar';
+  nome: string;
+  emoji: string;
+  cor: CorFitzgerald;
+}
 
 /**
  * Modo editor: pensado para mãe, pai ou terapeuta usar sem saber tecnologia.
@@ -45,8 +59,11 @@ export function Editor() {
     pranchas,
     imagens,
     audios,
-    criarPrancha,
-    renomearPrancha,
+    criarCategoria,
+    editarCategoria,
+    transferirSimbolo,
+    adicionarSimbolosProntos,
+    aplicarModelo,
     excluirPrancha,
     adicionarSimbolo,
     atualizarSimbolo,
@@ -68,6 +85,10 @@ export function Editor() {
   const [aviso, setAviso] = useState('');
   const [arrastando, setArrastando] = useState<number | null>(null);
   const [gravando, setGravando] = useState(false);
+  const [formCategoria, setFormCategoria] = useState<FormCategoria | null>(null);
+  const [mostrarBanco, setMostrarBanco] = useState(false);
+  const [mostrarModelos, setMostrarModelos] = useState(false);
+  const [modeloEscolhido, setModeloEscolhido] = useState(MODELOS_PRONTOS[1].id);
   const controleGravacao = useRef<ControleGravacao | null>(null);
   const inputImagem = useRef<HTMLInputElement>(null);
   const inputJson = useRef<HTMLInputElement>(null);
@@ -85,38 +106,75 @@ export function Editor() {
 
   // --- Pranchas ------------------------------------------------------------
 
-  const novaPrancha = () => {
-    const nome = window.prompt('Nome da nova prancha:', 'Minha prancha');
-    if (!nome?.trim()) return;
-    const criada = criarPrancha(nome.trim(), '📁');
-    setPranchaId(criada.id);
-    mostrarAviso(`Prancha “${criada.nome}” criada.`);
+  const abrirNovaCategoria = () => {
+    setRascunho(null);
+    setFormCategoria({ modo: 'nova', nome: '', emoji: '📁', cor: 'diversos' });
   };
 
-  const renomear = () => {
-    const nome = window.prompt('Novo nome da prancha:', prancha.nome);
-    if (!nome?.trim()) return;
-    renomearPrancha(prancha.id, nome.trim());
+  const abrirEdicaoCategoria = () => {
+    if (prancha.inicial) {
+      mostrarAviso('O Início lista as categorias. Para mudar uma categoria, escolha-a na lista acima.');
+      return;
+    }
+    // A cor e o ícone da categoria vivem no botão que a abre no Início.
+    const botao = pranchas
+      .flatMap((pr) => pr.simbolos)
+      .find((sim) => sim.pranchaDestinoId === prancha.id);
+    setRascunho(null);
+    setFormCategoria({
+      modo: 'editar',
+      nome: prancha.nome,
+      emoji: prancha.emoji ?? botao?.emoji ?? '📁',
+      cor: botao?.cor ?? 'diversos'
+    });
+  };
+
+  const salvarCategoria = () => {
+    if (!formCategoria) return;
+    const nome = formCategoria.nome.trim();
+    if (!nome) {
+      mostrarAviso('Escreva o nome da categoria.');
+      return;
+    }
+    const dados = { nome, emoji: formCategoria.emoji || '📁', cor: formCategoria.cor };
+    if (formCategoria.modo === 'nova') {
+      const id = criarCategoria(dados);
+      setPranchaId(id);
+      mostrarAviso(`Categoria “${nome}” criada. Agora é só adicionar as palavras.`);
+    } else {
+      editarCategoria(prancha.id, dados);
+      mostrarAviso(`Categoria “${nome}” atualizada.`);
+    }
+    setFormCategoria(null);
   };
 
   const apagarPrancha = () => {
     if (prancha.inicial) {
-      mostrarAviso('A prancha de início não pode ser excluída.');
+      mostrarAviso('O Início não pode ser excluído — ele é o mapa das categorias.');
       return;
     }
     const ok = window.confirm(
-      `Excluir a prancha “${prancha.nome}” e todos os seus símbolos? Isso não pode ser desfeito.`
+      `Excluir a categoria “${prancha.nome}” e todas as suas palavras? Isso não pode ser desfeito.`
     );
     if (!ok) return;
     excluirPrancha(prancha.id);
     setPranchaId(pranchas.find((p) => p.inicial)?.id ?? pranchas[0].id);
   };
 
+  const adicionarModeloAoPerfil = async () => {
+    const adicionadas = await aplicarModelo(modeloEscolhido);
+    mostrarAviso(
+      adicionadas === 0
+        ? 'Todas as categorias desse modelo já existem na sua prancheta.'
+        : `${adicionadas} categoria${adicionadas > 1 ? 's' : ''} adicionada${adicionadas > 1 ? 's' : ''} ao Início.`
+    );
+  };
+
   const importar = async (arquivo: File) => {
     try {
       const conteudo = await lerComoTexto(arquivo);
       const nome = await importarPrancha(conteudo);
-      mostrarAviso(`Prancha “${nome}” importada com sucesso.`);
+      mostrarAviso(`Categoria “${nome}” importada — ela já aparece no Início.`);
     } catch (erro) {
       mostrarAviso(erro instanceof Error ? erro.message : 'Não foi possível importar o arquivo.');
     }
@@ -124,11 +182,16 @@ export function Editor() {
 
   // --- Símbolos ------------------------------------------------------------
 
-  const abrirNovo = () => setRascunho({ ...RASCUNHO_VAZIO });
+  const abrirNovo = () => {
+    setFormCategoria(null);
+    setRascunho({ ...RASCUNHO_VAZIO, categoriaId: prancha.id });
+  };
 
-  const abrirEdicao = (simbolo: Simbolo) =>
+  const abrirEdicao = (simbolo: Simbolo) => {
+    setFormCategoria(null);
     setRascunho({
       simboloId: simbolo.id,
+      categoriaId: prancha.id,
       texto: simbolo.texto,
       textoFala: simbolo.textoFala ?? '',
       emoji: simbolo.emoji ?? '',
@@ -137,6 +200,7 @@ export function Editor() {
       imagemAtual: simbolo.imagemId ? imagens[simbolo.imagemId] : undefined,
       audioAtual: simbolo.audioId ? audios[simbolo.audioId] : undefined
     });
+  };
 
   // --- Gravação de voz pelo microfone ---------------------------------------
 
@@ -198,14 +262,31 @@ export function Editor() {
     if (simboloId) {
       await atualizarSimbolo(prancha.id, simboloId, dados, rascunho.imagemNova);
     } else {
-      simboloId = await adicionarSimbolo(prancha.id, dados, rascunho.imagemNova);
+      simboloId = await adicionarSimbolo(
+        rascunho.categoriaId || prancha.id,
+        dados,
+        rascunho.imagemNova
+      );
     }
+    // Onde o símbolo mora agora (a categoria pode ter sido trocada no formulário).
+    const moradaAtual = rascunho.simboloId ? prancha.id : rascunho.categoriaId || prancha.id;
 
     // Voz gravada: só grava/remove se algo mudou nesta edição.
     if (rascunho.audioNovo) {
-      await definirAudioSimbolo(prancha.id, simboloId, rascunho.audioNovo);
+      await definirAudioSimbolo(moradaAtual, simboloId, rascunho.audioNovo);
     } else if (rascunho.simboloId && !rascunho.audioAtual) {
-      removerAudioSimbolo(prancha.id, simboloId);
+      removerAudioSimbolo(moradaAtual, simboloId);
+    }
+
+    // Trocou de categoria ao editar? Então move o símbolo.
+    const mudouDeCategoria =
+      Boolean(rascunho.simboloId) && rascunho.categoriaId && rascunho.categoriaId !== prancha.id;
+    if (mudouDeCategoria) {
+      transferirSimbolo(prancha.id, simboloId, rascunho.categoriaId);
+      const destino = pranchas.find((p) => p.id === rascunho.categoriaId);
+      mostrarAviso(`Símbolo “${texto}” salvo e movido para “${destino?.nome ?? 'outra categoria'}”.`);
+      setRascunho(null);
+      return;
     }
 
     setRascunho(null);
@@ -231,43 +312,49 @@ export function Editor() {
         </p>
       )}
 
-      {/* Seleção e ações da prancha */}
+      {/* Seleção e ações da categoria */}
       <section className="flex flex-col gap-2 cartao">
         <label className="rotulo-campo" htmlFor="seletor-prancha">
-          Prancha que você está editando
+          Categoria que você está editando
         </label>
         <select
           id="seletor-prancha"
           className="campo"
           value={prancha.id}
-          onChange={(e) => setPranchaId(e.target.value)}
+          onChange={(e) => {
+            setPranchaId(e.target.value);
+            setFormCategoria(null);
+          }}
         >
           {pranchas.map((p) => (
             <option key={p.id} value={p.id}>
               {p.emoji ? `${p.emoji} ` : ''}
-              {p.nome} ({p.simbolos.length} símbolos)
+              {p.inicial ? 'Início (mapa das categorias)' : p.nome} ({p.simbolos.length})
             </option>
           ))}
         </select>
 
         <button type="button" className="botao botao-primario w-full text-lg" onClick={abrirNovo}>
-          + NOVO SÍMBOLO
+          + NOVA PALAVRA
         </button>
         <div className="grid grid-cols-2 gap-2">
-          <button type="button" className="botao" onClick={novaPrancha}>
-            🆕 NOVA PRANCHA
+          <button type="button" className="botao" onClick={() => setMostrarBanco((v) => !v)} disabled={prancha.inicial}>
+            📚 PALAVRAS PRONTAS
           </button>
-          <button type="button" className="botao" onClick={renomear}>
-            ✏️ RENOMEAR
+          <button type="button" className="botao" onClick={abrirNovaCategoria}>
+            🗂️ NOVA CATEGORIA
+          </button>
+          <button type="button" className="botao" onClick={abrirEdicaoCategoria} disabled={prancha.inicial}>
+            ✏️ EDITAR CATEGORIA
+          </button>
+          <button type="button" className="botao" onClick={apagarPrancha} disabled={prancha.inicial}>
+            🗑️ EXCLUIR CATEGORIA
           </button>
           <button type="button" className="botao" onClick={() => exportarPrancha(prancha.id)}>
-            ⬇️ EXPORTAR
+            ⬇️ EXPORTAR CATEGORIA
           </button>
           <button type="button" className="botao" onClick={() => inputJson.current?.click()}>
-            ⬆️ IMPORTAR
-          </button>
-          <button type="button" className="botao col-span-2" onClick={apagarPrancha}>
-            🗑️ EXCLUIR PRANCHA
+            ⬆️ IMPORTAR CATEGORIA
           </button>
         </div>
         <input
@@ -283,20 +370,132 @@ export function Editor() {
         />
         <p className="text-sm opacity-80">
           Exportar gera um arquivo que outra pessoa pode importar neste app, mesmo sem internet —
-          é assim que terapeutas trocam pranchas entre si.
+          é assim que terapeutas trocam categorias entre si. Para levar a prancheta INTEIRA de um
+          aluno, use a aba <strong>Perfis</strong>.
         </p>
+      </section>
+
+      {/* Formulário de categoria (nova ou editar) */}
+      {formCategoria && (
+        <section
+          className="flex flex-col gap-3 cartao"
+          style={{ borderColor: 'var(--primaria)', borderWidth: 4 }}
+        >
+          <h2 className="titulo-tela">
+            {formCategoria.modo === 'nova' ? 'Nova categoria' : 'Editar categoria'}
+          </h2>
+          <p className="text-sm" style={{ color: 'var(--texto-suave)' }}>
+            A categoria aparece como um bloco colorido na tela de Início. Depois de criar, é só
+            adicionar as palavras dela.
+          </p>
+
+          <div>
+            <label className="rotulo-campo" htmlFor="campo-nome-categoria">
+              Nome da categoria
+            </label>
+            <input
+              id="campo-nome-categoria"
+              className="campo"
+              value={formCategoria.nome}
+              placeholder="Ex.: Brinquedos"
+              onChange={(e) => setFormCategoria({ ...formCategoria, nome: e.target.value })}
+            />
+          </div>
+
+          <div>
+            <span className="rotulo-campo">Ícone da categoria</span>
+            <div className="mb-2 flex items-center gap-3">
+              <span
+                className="flex h-16 w-16 items-center justify-center rounded-2xl border-2 text-4xl"
+                style={{ borderColor: 'var(--borda)' }}
+              >
+                {formCategoria.emoji}
+              </span>
+              <span className="text-sm opacity-80">Escolha um desenho abaixo:</span>
+            </div>
+            <EscolherEmoji
+              valor={formCategoria.emoji}
+              onEscolher={(emoji) => setFormCategoria({ ...formCategoria, emoji })}
+            />
+          </div>
+
+          <div>
+            <span className="rotulo-campo">Cor do bloco</span>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {CORES_FITZGERALD.map((cor) => (
+                <button
+                  key={cor.id}
+                  type="button"
+                  onClick={() => setFormCategoria({ ...formCategoria, cor: cor.id })}
+                  aria-pressed={formCategoria.cor === cor.id}
+                  className={`min-h-toque amostra-tile rounded-2xl border-4 px-3 py-2 text-left font-extrabold ${classesDaCor(
+                    cor.id
+                  )} ${formCategoria.cor === cor.id ? 'ring-4 ring-violet-600' : ''}`}
+                >
+                  {cor.rotulo}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            <button type="button" className="botao botao-primario flex-1" onClick={salvarCategoria}>
+              ✅ SALVAR CATEGORIA
+            </button>
+            <button type="button" className="botao flex-1" onClick={() => setFormCategoria(null)}>
+              CANCELAR
+            </button>
+          </div>
+        </section>
+      )}
+
+      {/* Banco de palavras prontas */}
+      {mostrarBanco && !prancha.inicial && (
+        <BancoDePalavras
+          nomeDestino={prancha.nome}
+          onAdicionar={(simbolos) => adicionarSimbolosProntos(prancha.id, simbolos)}
+          onFechar={() => setMostrarBanco(false)}
+        />
+      )}
+
+      {/* Modelos de prancheta: somar categorias prontas ao perfil atual */}
+      <section className="flex flex-col gap-2 cartao">
+        <button
+          type="button"
+          className="botao w-full"
+          aria-expanded={mostrarModelos}
+          onClick={() => setMostrarModelos((v) => !v)}
+        >
+          🎒 {mostrarModelos ? 'FECHAR MODELOS' : 'ADICIONAR CATEGORIAS DE UM MODELO'}
+        </button>
+        {mostrarModelos && (
+          <>
+            <p className="text-sm opacity-80">
+              Escolha um modelo (Escola, Casa, Passeio...) e some as categorias dele a esta
+              prancheta. Categorias com o mesmo nome de alguma que você já tem não são repetidas.
+            </p>
+            <GaleriaModelos valor={modeloEscolhido} onEscolher={setModeloEscolhido} />
+            <button
+              type="button"
+              className="botao botao-primario w-full"
+              onClick={() => void adicionarModeloAoPerfil()}
+            >
+              + ADICIONAR AO INÍCIO
+            </button>
+          </>
+        )}
       </section>
 
       {/* Formulário de símbolo */}
       {rascunho && (
         <section className="flex flex-col gap-3 cartao" style={{ borderColor: 'var(--primaria)', borderWidth: 4 }}>
           <h2 className="titulo-tela">
-            {rascunho.simboloId ? 'Editar símbolo' : 'Novo símbolo'}
+            {rascunho.simboloId ? 'Editar palavra' : 'Nova palavra'}
           </h2>
 
           <div>
             <label className="rotulo-campo" htmlFor="campo-texto">
-              Palavra que aparece no botão
+              Palavra que aparece no bloco
             </label>
             <input
               id="campo-texto"
@@ -454,8 +653,32 @@ export function Editor() {
           </div>
 
           <div>
+            <label className="rotulo-campo" htmlFor="campo-categoria">
+              Em qual categoria esta palavra fica?
+            </label>
+            <select
+              id="campo-categoria"
+              className="campo"
+              value={rascunho.categoriaId}
+              onChange={(e) => setRascunho({ ...rascunho, categoriaId: e.target.value })}
+            >
+              {pranchas.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.emoji ? `${p.emoji} ` : ''}
+                  {p.inicial ? 'Início (mapa das categorias)' : p.nome}
+                </option>
+              ))}
+            </select>
+            {rascunho.simboloId && (
+              <p className="mt-1 text-sm opacity-80">
+                Trocar a categoria aqui move a palavra para lá ao salvar.
+              </p>
+            )}
+          </div>
+
+          <div>
             <label className="rotulo-campo" htmlFor="campo-destino">
-              Este símbolo abre outra prancha? (opcional)
+              Este bloco abre outra categoria? (opcional)
             </label>
             <select
               id="campo-destino"
@@ -495,7 +718,7 @@ export function Editor() {
       {/* Lista de símbolos com reordenação */}
       <section className="flex flex-col gap-2">
         <h2 className="titulo-tela">
-          Símbolos de “{prancha.nome}” ({prancha.simbolos.length})
+          Palavras de “{prancha.nome}” ({prancha.simbolos.length})
         </h2>
         <p className="text-sm opacity-80">
           Arraste para reordenar (no computador) ou use as setas ⬆️ ⬇️ (no celular).
@@ -588,7 +811,7 @@ export function Editor() {
 
         {prancha.simbolos.length === 0 && (
           <p className="cartao text-center font-bold">
-            Nenhum símbolo aqui ainda. Toque em <strong>NOVO SÍMBOLO</strong>.
+            Nenhuma palavra aqui ainda. Toque em <strong>NOVA PALAVRA</strong> ou <strong>PALAVRAS PRONTAS</strong>.
           </p>
         )}
       </section>

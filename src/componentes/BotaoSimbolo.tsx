@@ -1,4 +1,5 @@
-import { forwardRef, useRef, useState, type CSSProperties, type ForwardedRef } from 'react';
+import { forwardRef, useMemo, useRef, useState, type CSSProperties, type ForwardedRef } from 'react';
+import { larguraEmEm, useFontesProntas } from '../utilidades/larguraTexto';
 import type { Simbolo } from '../tipos';
 import { classesDaCor } from '../dados/coresFitzgerald';
 
@@ -32,9 +33,16 @@ export const BotaoSimbolo = forwardRef(function BotaoSimbolo(
   const ehPasta = Boolean(simbolo.pranchaDestinoId);
   const emoji = simbolo.emoji || (ehPasta ? '📁' : '🔤');
 
-  // Tamanho da maior palavra: o CSS usa isso para só diminuir a letra quando
-  // a palavra realmente não cabe na largura do tile.
-  const maiorPalavra = Math.max(...simbolo.texto.split(/\s+/).map((p) => p.length), 3);
+  // Largura real (em "em") da maior palavra do texto, medida na fonte do app.
+  // O CSS divide a largura do bloco por esse número para achar a maior letra
+  // que ainda cabe — assim nada é cortado. Quando a fonte termina de carregar,
+  // o bloco mede de novo (useFontesProntas).
+  const fontesProntas = useFontesProntas();
+  const emTexto = useMemo(
+    () => larguraEmEm(simbolo.texto),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [simbolo.texto, fontesProntas]
+  );
 
   // Cada toque gera uma onda com id próprio, que se apaga sozinha no fim.
   const [ondas, setOndas] = useState<number[]>([]);
@@ -60,7 +68,7 @@ export const BotaoSimbolo = forwardRef(function BotaoSimbolo(
       className={[
         'botao-simbolo tile-medido relative flex min-h-toque min-w-toque flex-col items-center justify-center',
         'h-full w-full overflow-hidden border-2 text-center',
-        compacto ? 'gap-0.5 rounded-2xl p-1' : 'gap-1 rounded-3xl px-1.5 pb-1.5 pt-1',
+        compacto ? 'gap-0.5 rounded-2xl px-0.5 pb-1 pt-1' : 'gap-1 rounded-3xl px-1.5 pb-1.5 pt-1',
         ehPasta && !compacto ? 'capa-pasta' : '',
         pulando ? 'tocado' : '',
         indiceEntrada !== undefined ? 'entrando' : '',
@@ -83,7 +91,7 @@ export const BotaoSimbolo = forwardRef(function BotaoSimbolo(
       <span
         className={[
           'prato-emoji relative z-[1] flex items-center justify-center rounded-full',
-          compacto ? 'h-11 w-11 flex-none' : 'min-h-0 flex-1'
+          compacto ? 'h-8 w-8 flex-none' : 'min-h-[26px] flex-1'
         ].join(' ')}
         style={compacto ? undefined : { aspectRatio: '1', width: 'auto', maxWidth: '100%' }}
       >
@@ -104,7 +112,7 @@ export const BotaoSimbolo = forwardRef(function BotaoSimbolo(
       <span
         lang="pt-BR"
         className="texto-simbolo relative z-[1] w-full shrink-0 font-black uppercase"
-        style={{ '--letras': maiorPalavra } as CSSProperties}
+        style={{ '--em-texto': emTexto } as CSSProperties}
       >
         {simbolo.texto}
       </span>

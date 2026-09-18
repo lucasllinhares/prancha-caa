@@ -1,7 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useApp } from '../estado/AppContext';
 import { observarVozes, sinteseDisponivel } from '../fala/sintetizador';
-import type { Densidade, EstiloVisual, TamanhoFonte, Tema, TomVoz, VelocidadeFala } from '../tipos';
+import type {
+  Densidade,
+  EstiloVisual,
+  TamanhoBlocos,
+  TamanhoFonte,
+  Tema,
+  TomVoz,
+  VelocidadeFala
+} from '../tipos';
 
 /** Grupo de botões que funcionam como um seletor único, grande e tocável. */
 function Opcoes<T extends string | number>({
@@ -341,6 +349,20 @@ export function Configuracoes() {
           ]}
           onEscolher={(v) => atualizarConfig({ tamanhoFonte: v })}
         />
+
+        <Opcoes<TamanhoBlocos>
+          titulo="Tamanho dos blocos"
+          valor={config.tamanhoBlocos}
+          opcoes={[
+            { valor: 'normal', rotulo: 'NORMAL' },
+            { valor: 'grande', rotulo: 'GRANDE (MAIS ESPAÇO)' }
+          ]}
+          onEscolher={(v) => atualizarConfig({ tamanhoBlocos: v })}
+        />
+        <p className="text-sm opacity-80">
+          "Grande" deixa cada bloco mais alto e a letra maior — ótimo quando as palavras são
+          longas ou a tela é pequena. Nenhum texto é cortado em nenhum dos dois tamanhos.
+        </p>
 
         <Opcoes<Tema>
           titulo="Tema"

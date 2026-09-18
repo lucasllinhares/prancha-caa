@@ -82,6 +82,8 @@ export type Tema = 'claro' | 'escuro' | 'contraste';
 export type EstiloVisual = 'dinamico' | 'contorno';
 export type Densidade = 4 | 6 | 9 | 12 | 16;
 export type TamanhoFonte = 'pequeno' | 'medio' | 'grande' | 'enorme';
+/** Espaço extra dentro de cada bloco ("grande" dá mais folga ao texto e ao ícone). */
+export type TamanhoBlocos = 'normal' | 'grande';
 
 export interface Configuracoes {
   velocidadeFala: VelocidadeFala;
@@ -91,6 +93,7 @@ export interface Configuracoes {
   falarAoTocar: boolean;
   densidade: Densidade;
   tamanhoFonte: TamanhoFonte;
+  tamanhoBlocos: TamanhoBlocos;
   tema: Tema;
   /** Estilo visual do app: 'contorno' (padrão) ou 'dinamico'. */
   estiloVisual: EstiloVisual;
@@ -138,17 +141,49 @@ export interface Perfil {
   versaoVocabulario: number;
 }
 
+/**
+ * Modelo de prancheta criado pelo próprio usuário ("Minhas pranchetas"):
+ * uma cópia das categorias de um perfil, guardada para criar pranchetas de
+ * outros alunos a partir dela. O conteúdo em si (pranchas, imagens e áudios)
+ * fica no IndexedDB, numa chave própria; aqui só a ficha para listar.
+ */
+export interface ModeloUsuario {
+  id: string;
+  nome: string;
+  emoji: string;
+  criadoEm: number;
+  totalCategorias: number;
+}
+
 /** Estado completo persistido. */
 export interface EstadoPersistido {
   versao: number;
   perfis: Perfil[];
   perfilAtivoId: string;
+  /** Modelos de prancheta salvos pelo usuário (lista de fichas). */
+  modelos?: ModeloUsuario[];
   /**
    * Verdadeiro quando o app abriu sem conseguir ler o armazenamento (banco
    * bloqueado, modo privado, disco cheio). Nesse caso NAO salvamos nada, para
    * nao apagar os dados que podem estar la.
    */
   somenteMemoria?: boolean;
+}
+
+/**
+ * Arquivo .json com uma prancheta COMPLETA (todas as categorias de um perfil,
+ * com imagens e áudios). É como uma prancheta pronta é "publicada"/passada
+ * adiante sem servidor: exporta num aparelho, importa em outro.
+ */
+export interface ArquivoPacote {
+  formato: 'prancha-caa-pacote';
+  versao: number;
+  exportadoEm: string;
+  nome: string;
+  emoji?: string;
+  pranchas: Prancha[];
+  imagens: Record<string, string>;
+  audios: Record<string, string>;
 }
 
 /** Formato do arquivo .json de exportacao/importacao de prancha. */

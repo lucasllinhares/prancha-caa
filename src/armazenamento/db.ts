@@ -1,5 +1,5 @@
 import { get, set, del, keys } from 'idb-keyval';
-import type { Configuracoes, EstadoPersistido, Perfil } from '../tipos';
+import type { ArquivoPacote, Configuracoes, EstadoPersistido, Perfil, Prancha } from '../tipos';
 import {
   categoriasFaltando,
   clonarCategoriaComBotao,
@@ -15,11 +15,13 @@ import { novoId } from '../utilidades/id';
 //  chave 'caa:estado'      -> perfis, configurações, pranchas e histórico
 //  chave 'caa:img:<id>'    -> imagens (data URL já redimensionada)
 //  chave 'caa:audio:<id>'  -> áudios gravados pelo microfone (data URL)
+//  chave 'caa:modelo:<id>' -> conteúdo de um modelo de prancheta do usuário
 // ---------------------------------------------------------------------------
 
 const CHAVE_ESTADO = 'caa:estado';
 const PREFIXO_IMAGEM = 'caa:img:';
 const PREFIXO_AUDIO = 'caa:audio:';
+const PREFIXO_MODELO = 'caa:modelo:';
 export const VERSAO_DADOS = 1;
 
 export const CONFIGURACOES_PADRAO: Configuracoes = {
@@ -29,6 +31,7 @@ export const CONFIGURACOES_PADRAO: Configuracoes = {
   falarAoTocar: true,
   densidade: 9,
   tamanhoFonte: 'medio',
+  tamanhoBlocos: 'normal',
   tema: 'claro',
   estiloVisual: 'contorno',
   pinEditor: '',
@@ -39,12 +42,15 @@ export const CONFIGURACOES_PADRAO: Configuracoes = {
   reforcoPositivo: true
 };
 
-/** Perfil semeado no primeiro uso, já com todo o vocabulário pronto. */
-export function criarPerfil(nome = 'Meu perfil'): Perfil {
+/**
+ * Perfil novo. Sem `pranchas`, já vem com todo o vocabulário de fábrica; com
+ * `pranchas`, começa daquelas (ex.: as de um modelo de prancheta).
+ */
+export function criarPerfil(nome = 'Meu perfil', pranchas?: Prancha[]): Perfil {
   return {
     id: novoId('perfil'),
     nome,
-    pranchas: criarPranchasIniciais(),
+    pranchas: pranchas ?? criarPranchasIniciais(),
     configuracoes: { ...CONFIGURACOES_PADRAO },
     historico: [],
     rotinas: [],
@@ -129,6 +135,7 @@ export async function carregarEstado(): Promise<EstadoPersistido> {
     }
     // Garante que configurações e campos novos (de versões futuras) tenham
     // valor, e traz categorias de vocabulário novas para perfis antigos.
+    salvo.modelos = salvo.modelos ?? [];
     salvo.perfis = salvo.perfis.map((p) =>
       migrarVocabulario({
         ...p,
@@ -214,4 +221,18 @@ async function lerTodosPorPrefixo(prefixo: string): Promise<Record<string, strin
     console.warn('Não foi possível ler os dados salvos:', erro);
   }
   return resultado;
+}
+
+// --- Modelos de prancheta do usuário ("Minhas pranchetas") --------------------
+
+export async function salvarModelo(id: string, pacote: ArquivoPacote): Promise<void> {
+  await set(PREFIXO_MODELO + id, pacote);
+}
+
+export async function lerModelo(id: string): Promise<ArquivoPacote | undefined> {
+  return get<ArquivoPacote>(PREFIXO_MODELO + id);
+}
+
+export async function excluirModeloArmazenado(id: string): Promise<void> {
+  await del(PREFIXO_MODELO + id);
 }

@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react';
 import { useApp } from '../estado/AppContext';
-import { redimensionarImagem } from '../utilidades/imagem';
+import { GaleriaModelos } from '../componentes/GaleriaModelos';
+import { MODELOS_PRONTOS } from '../dados/modelos';
+import { lerComoTexto, redimensionarImagem } from '../utilidades/imagem';
 
 /**
  * Perfis: cada um tem suas próprias pranchas, configurações e histórico.
@@ -16,7 +18,10 @@ export function Perfis() {
     adicionarPerfil,
     renomearPerfil,
     definirFotoPerfil,
-    excluirPerfil
+    excluirPerfil,
+    exportarPerfil,
+    importarPerfil,
+    salvarPerfilComoModelo
   } = useApp();
 
   const [nomeNovo, setNomeNovo] = useState('');
@@ -24,24 +29,58 @@ export function Perfis() {
   const inputFotoNova = useRef<HTMLInputElement>(null);
   const inputFotoPerfil = useRef<HTMLInputElement>(null);
   const [idParaFoto, setIdParaFoto] = useState<string | null>(null);
+  const [modeloNovo, setModeloNovo] = useState(MODELOS_PRONTOS[0].id);
+  const [aviso, setAviso] = useState('');
+  const inputPacote = useRef<HTMLInputElement>(null);
+
+  const mostrarAviso = (texto: string) => {
+    setAviso(texto);
+    window.setTimeout(() => setAviso(''), 5000);
+  };
+
+  const importarArquivo = async (arquivo: File) => {
+    try {
+      const nome = await importarPerfil(await lerComoTexto(arquivo));
+      mostrarAviso(`Prancheta “${nome}” importada e já em uso.`);
+    } catch (erro) {
+      mostrarAviso(erro instanceof Error ? erro.message : 'Não foi possível importar o arquivo.');
+    }
+  };
+
+  const guardarComoModelo = async (id: string, nomeAtual: string) => {
+    const nome = window.prompt(
+      'Nome do modelo (ele fica em "Minhas pranchetas" para criar a prancheta de outros alunos):',
+      nomeAtual
+    );
+    if (!nome?.trim()) return;
+    await salvarPerfilComoModelo(id, nome.trim(), '⭐');
+    mostrarAviso(`Modelo “${nome.trim()}” salvo. Use-o ao criar um novo perfil.`);
+  };
 
   const criar = async () => {
     if (!nomeNovo.trim()) {
       window.alert('Escreva o nome do perfil.');
       return;
     }
-    await adicionarPerfil(nomeNovo, fotoNova);
+    await adicionarPerfil(nomeNovo, fotoNova, modeloNovo);
+    mostrarAviso(`Prancheta de “${nomeNovo.trim()}” criada e já em uso.`);
     setNomeNovo('');
     setFotoNova(undefined);
   };
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-4 p-3 pb-16 sm:gap-5 sm:p-4 lg:p-6 lg:pb-10">
-      <h1 className="titulo-tela">Perfis</h1>
+      <h1 className="titulo-tela">Perfis e pranchetas</h1>
       <p className="text-sm opacity-80">
-        Toque em um perfil para usá-lo agora. Cada perfil guarda as próprias pranchas,
-        configurações e histórico neste aparelho.
+        Cada perfil é a prancheta de uma pessoa (um aluno, por exemplo), com as próprias
+        categorias, palavras, configurações e histórico. Toque em um perfil para usá-lo agora.
       </p>
+
+      {aviso && (
+        <p role="status" className="cartao font-extrabold" style={{ borderColor: 'var(--primaria)' }}>
+          {aviso}
+        </p>
+      )}
 
       <ul className="flex flex-col gap-2">
         {perfis.map((p) => {
@@ -49,11 +88,10 @@ export function Perfis() {
           return (
             <li
               key={p.id}
-              className={`flex items-center gap-3 cartao ${
-                ativo ? 'border-4' : ''
-              }`}
+              className={`cartao flex flex-col gap-3 ${ativo ? 'border-4' : ''}`}
               style={ativo ? { borderColor: 'var(--primaria)' } : undefined}
             >
+              <div className="flex items-center gap-3">
               <button
                 type="button"
                 className="flex min-h-toque flex-1 items-center gap-3 text-left"
@@ -122,6 +160,22 @@ export function Perfis() {
                   🗑️
                 </button>
               </div>
+              </div>
+
+              {/* Levar a prancheta deste aluno para outro aparelho, ou guardá-la
+                  como modelo para criar a de outros alunos. */}
+              <div className="flex flex-wrap gap-2">
+                <button type="button" className="botao flex-1 basis-40" onClick={() => exportarPerfil(p.id)}>
+                  ⬇️ EXPORTAR PRANCHETA
+                </button>
+                <button
+                  type="button"
+                  className="botao flex-1 basis-40"
+                  onClick={() => void guardarComoModelo(p.id, p.nome)}
+                >
+                  ⭐ SALVAR COMO MODELO
+                </button>
+              </div>
             </li>
           );
         })}
@@ -186,12 +240,39 @@ export function Perfis() {
           />
         </div>
 
-        <p className="text-sm opacity-80">
-          O novo perfil já vem com todo o vocabulário inicial em português pronto para usar.
-        </p>
+        <div>
+          <span className="rotulo-campo">Começar de qual modelo?</span>
+          <p className="mb-2 text-sm opacity-80">
+            O aluno recebe uma cópia do modelo e pode mudar tudo depois, sem afetar os outros.
+          </p>
+          <GaleriaModelos valor={modeloNovo} onEscolher={setModeloNovo} permitirExcluir />
+        </div>
+
         <button type="button" className="botao botao-primario" onClick={() => void criar()}>
-          + CRIAR PERFIL
+          + CRIAR PRANCHETA DO ALUNO
         </button>
+      </section>
+
+      <section className="flex flex-col gap-2 cartao">
+        <h2 className="text-lg font-extrabold">Receber uma prancheta pronta</h2>
+        <p className="text-sm opacity-80">
+          Recebeu o arquivo de uma prancheta de um colega ou terapeuta? Importe aqui — ela vira um
+          novo perfil, com todas as categorias, imagens e vozes gravadas.
+        </p>
+        <button type="button" className="botao" onClick={() => inputPacote.current?.click()}>
+          ⬆️ IMPORTAR PRANCHETA (ARQUIVO .JSON)
+        </button>
+        <input
+          ref={inputPacote}
+          type="file"
+          accept="application/json,.json"
+          className="hidden"
+          onChange={(e) => {
+            const arquivo = e.target.files?.[0];
+            e.target.value = '';
+            if (arquivo) void importarArquivo(arquivo);
+          }}
+        />
       </section>
     </div>
   );
