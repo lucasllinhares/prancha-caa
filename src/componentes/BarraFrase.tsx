@@ -12,8 +12,16 @@ import { classesDaCor } from '../dados/coresFitzgerald';
  * três barrinhas sobem e descem — a pessoa vê que o app está falando.
  */
 export function BarraFrase() {
-  const { frase, textoFrase, imagens, falarFrase, apagarUltimo, limparFrase, falando } = useApp();
+  const { frase, textoFrase, imagens, falarFrase, apagarUltimo, limparFrase, falando, criarRotina } =
+    useApp();
   const vazia = frase.length === 0;
+
+  const salvarComoRotina = () => {
+    const nome = window.prompt('Nome da rotina (ex.: "hora de dormir"):');
+    if (!nome?.trim()) return;
+    criarRotina(nome.trim(), frase[0]?.emoji || '🔁');
+    window.alert(`Rotina "${nome.trim()}" salva! Ela aparece na tela principal, em 🔁 ROTINAS.`);
+  };
 
   return (
     <header
@@ -126,6 +134,12 @@ export function BarraFrase() {
             <span aria-hidden="true">🧹</span> LIMPAR
           </button>
         </div>
+
+        {!vazia && (
+          <button type="button" className="botao w-full normal-case" onClick={salvarComoRotina}>
+            <span aria-hidden="true">💾</span> Salvar esta frase como rotina
+          </button>
+        )}
       </div>
     </header>
   );

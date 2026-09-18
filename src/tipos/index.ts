@@ -33,6 +33,12 @@ export interface Simbolo {
   emoji?: string;
   /** Chave da imagem guardada no IndexedDB (data URL redimensionada). */
   imagemId?: string;
+  /**
+   * Chave do audio gravado pelo microfone, guardado no IndexedDB (data URL).
+   * Quando presente, tocar o simbolo reproduz essa gravacao em vez de usar a
+   * voz sintetizada — util para a voz da propria familia ou do terapeuta.
+   */
+  audioId?: string;
   cor: CorFitzgerald;
   /** Quando preenchido, tocar no simbolo navega para essa prancha. */
   pranchaDestinoId?: string;
@@ -48,16 +54,30 @@ export interface Prancha {
   inicial?: boolean;
 }
 
+/**
+ * Rotina: uma sequencia pronta de simbolos que a pessoa monta uma vez e
+ * guarda para usar com um toque só (ex.: "hora de dormir" = escovar dente +
+ * banho + pijama). Guarda uma copia dos simbolos, nao so os ids — assim a
+ * rotina continua funcionando mesmo se o simbolo original for editado ou
+ * apagado depois.
+ */
+export interface Rotina {
+  id: string;
+  nome: string;
+  emoji: string;
+  simbolos: Simbolo[];
+}
+
 export type VelocidadeFala = 'lenta' | 'normal' | 'rapida';
 export type TomVoz = 'grave' | 'medio' | 'agudo';
 export type Tema = 'claro' | 'escuro' | 'contraste';
 
 /**
  * Estilo visual do app inteiro (independente do tema claro/escuro):
- *  - 'dinamico': o visual padrão do app — tiles com relevo, sombra suave,
- *    texturas nas capas e cores vivas (referência: apps de jogo/Duolingo).
- *  - 'contorno': visual alternativo tipo "sticker" — bordas pretas grossas,
- *    sombra sólida deslocada (sem desfoque) e cores chapadas, sem textura.
+ *  - 'contorno': o visual padrão do app — bordas pretas grossas, sombra
+ *    sólida deslocada (sem desfoque) e cores chapadas, estilo "sticker".
+ *  - 'dinamico': estilo alternativo com relevo suave, sombra desfocada e
+ *    texturas nas capas (referência: apps de jogo/Duolingo).
  */
 export type EstiloVisual = 'dinamico' | 'contorno';
 export type Densidade = 4 | 6 | 9 | 12 | 16;
@@ -72,7 +92,7 @@ export interface Configuracoes {
   densidade: Densidade;
   tamanhoFonte: TamanhoFonte;
   tema: Tema;
-  /** Estilo visual do app: 'dinamico' (padrão) ou 'contorno'. */
+  /** Estilo visual do app: 'contorno' (padrão) ou 'dinamico'. */
   estiloVisual: EstiloVisual;
   /** PIN de 4 digitos que protege o modo editor. Vazio = sem bloqueio. */
   pinEditor: string;
@@ -82,6 +102,10 @@ export interface Configuracoes {
   varreduraIntervalo: number;
   /** Mostrar a faixa fixa de vocabulario nuclear. */
   mostrarNucleo: boolean;
+  /** Mostrar sugestoes de palavras depois de "quero" / "não quero". */
+  sugestoesAtivas: boolean;
+  /** Pequena animação/som ao falar uma frase completa. */
+  reforcoPositivo: boolean;
 }
 
 /** Frase guardada no historico. */
@@ -103,6 +127,15 @@ export interface Perfil {
   pranchas: Prancha[];
   configuracoes: Configuracoes;
   historico: FraseHistorico[];
+  rotinas: Rotina[];
+  /** Quantas vezes cada simbolo (por id) foi usado — alimenta as sugestões. */
+  usoSimbolos: Record<string, number>;
+  /**
+   * Versão do vocabulário inicial que este perfil já recebeu. Usada para
+   * adicionar novas categorias de fábrica a perfis antigos sem duplicar
+   * nem trazer de volta categorias que a pessoa já excluiu.
+   */
+  versaoVocabulario: number;
 }
 
 /** Estado completo persistido. */
@@ -126,4 +159,6 @@ export interface ArquivoPranchaExportada {
   prancha: Prancha;
   /** Imagens usadas pela prancha: id -> data URL. */
   imagens: Record<string, string>;
+  /** Áudios gravados usados pela prancha: id -> data URL. */
+  audios: Record<string, string>;
 }

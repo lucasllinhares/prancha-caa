@@ -76,6 +76,61 @@ function PreviewEstilo({ estilo }: { estilo: EstiloVisual }) {
   );
 }
 
+/** Lista as rotinas salvas, com opção de renomear e excluir. */
+function GerenciarRotinas() {
+  const { perfil, renomearRotina, excluirRotina } = useApp();
+
+  if (perfil.rotinas.length === 0) {
+    return (
+      <p className="text-sm opacity-80">
+        Nenhuma rotina salva ainda. Monte uma frase na tela Falar e toque em{' '}
+        <strong>"Salvar esta frase como rotina"</strong>.
+      </p>
+    );
+  }
+
+  return (
+    <div>
+      <span className="rotulo-campo">Rotinas salvas</span>
+      <ul className="flex flex-col gap-2">
+        {perfil.rotinas.map((r) => (
+          <li
+            key={r.id}
+            className="flex items-center gap-2 rounded-2xl border-2 p-2"
+            style={{ borderColor: 'var(--borda)' }}
+          >
+            <span aria-hidden="true" className="text-2xl">
+              {r.emoji}
+            </span>
+            <span className="flex-1 truncate font-bold">{r.nome}</span>
+            <button
+              type="button"
+              className="botao px-3"
+              aria-label={`Renomear ${r.nome}`}
+              onClick={() => {
+                const nome = window.prompt('Novo nome da rotina:', r.nome);
+                if (nome?.trim()) renomearRotina(r.id, nome.trim());
+              }}
+            >
+              ✏️
+            </button>
+            <button
+              type="button"
+              className="botao px-3"
+              aria-label={`Excluir rotina ${r.nome}`}
+              onClick={() => {
+                if (window.confirm(`Excluir a rotina "${r.nome}"?`)) excluirRotina(r.id);
+              }}
+            >
+              🗑️
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export function Configuracoes() {
   const { config, atualizarConfig, falarTextoLivre } = useApp();
   const [vozes, setVozes] = useState<SpeechSynthesisVoice[]>([]);
@@ -222,6 +277,40 @@ export function Configuracoes() {
         >
           ✅ APLICAR ESTILO
         </button>
+      </section>
+
+      {/* --- Sugestões, reforço e rotinas ------------------------------------ */}
+      <section className="flex flex-col gap-4 cartao">
+        <h2 className="text-lg font-extrabold">Sugestões e rotinas</h2>
+
+        <Opcoes<string>
+          titulo="Sugestões de palavras"
+          valor={config.sugestoesAtivas ? 'sim' : 'nao'}
+          opcoes={[
+            { valor: 'sim', rotulo: 'LIGADO' },
+            { valor: 'nao', rotulo: 'DESLIGADO' }
+          ]}
+          onEscolher={(v) => atualizarConfig({ sugestoesAtivas: v === 'sim' })}
+        />
+        <p className="text-sm opacity-80">
+          Depois de tocar em "quero" ou "não quero", mostra os símbolos que a pessoa mais usa —
+          aprende sozinho com o uso.
+        </p>
+
+        <Opcoes<string>
+          titulo="Reforço positivo ao falar"
+          valor={config.reforcoPositivo ? 'sim' : 'nao'}
+          opcoes={[
+            { valor: 'sim', rotulo: 'LIGADO' },
+            { valor: 'nao', rotulo: 'DESLIGADO' }
+          ]}
+          onEscolher={(v) => atualizarConfig({ reforcoPositivo: v === 'sim' })}
+        />
+        <p className="text-sm opacity-80">
+          Um breve brilho de estrelinhas (menos de 1 segundo) depois de falar uma frase completa.
+        </p>
+
+        <GerenciarRotinas />
       </section>
 
       {/* --- Tela ----------------------------------------------------------- */}

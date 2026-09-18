@@ -3,6 +3,12 @@ import { useApp } from '../estado/AppContext';
 import { CORES_FITZGERALD, classesDaCor } from '../dados/coresFitzgerald';
 import { EscolherEmoji } from '../componentes/EscolherEmoji';
 import { lerComoTexto, redimensionarImagem } from '../utilidades/imagem';
+import {
+  gravacaoDisponivel,
+  iniciarGravacao,
+  tocarAudioGravado,
+  type ControleGravacao
+} from '../fala/gravador';
 import type { CorFitzgerald, Simbolo } from '../tipos';
 
 interface Rascunho {
@@ -16,6 +22,10 @@ interface Rascunho {
   imagemNova?: string;
   /** Imagem que já estava salva no símbolo. */
   imagemAtual?: string;
+  /** Áudio recém-gravado pelo microfone, ainda não salvo. */
+  audioNovo?: string;
+  /** Áudio que já estava salvo no símbolo. */
+  audioAtual?: string;
 }
 
 const RASCUNHO_VAZIO: Rascunho = {
@@ -34,6 +44,7 @@ export function Editor() {
   const {
     pranchas,
     imagens,
+    audios,
     criarPrancha,
     renomearPrancha,
     excluirPrancha,
@@ -41,6 +52,8 @@ export function Editor() {
     atualizarSimbolo,
     excluirSimbolo,
     moverSimbolo,
+    definirAudioSimbolo,
+    removerAudioSimbolo,
     exportarPrancha,
     importarPrancha
   } = useApp();
@@ -54,6 +67,8 @@ export function Editor() {
   const [rascunho, setRascunho] = useState<Rascunho | null>(null);
   const [aviso, setAviso] = useState('');
   const [arrastando, setArrastando] = useState<number | null>(null);
+  const [gravando, setGravando] = useState(false);
+  const controleGravacao = useRef<ControleGravacao | null>(null);
   const inputImagem = useRef<HTMLInputElement>(null);
   const inputJson = useRef<HTMLInputElement>(null);
 
@@ -119,8 +134,39 @@ export function Editor() {
       emoji: simbolo.emoji ?? '',
       cor: simbolo.cor,
       pranchaDestinoId: simbolo.pranchaDestinoId ?? '',
-      imagemAtual: simbolo.imagemId ? imagens[simbolo.imagemId] : undefined
+      imagemAtual: simbolo.imagemId ? imagens[simbolo.imagemId] : undefined,
+      audioAtual: simbolo.audioId ? audios[simbolo.audioId] : undefined
     });
+
+  // --- Gravação de voz pelo microfone ---------------------------------------
+
+  const comecarGravacao = async () => {
+    try {
+      controleGravacao.current = await iniciarGravacao();
+      setGravando(true);
+    } catch {
+      mostrarAviso('Não foi possível usar o microfone. Verifique a permissão do navegador.');
+    }
+  };
+
+  const pararGravacao = async () => {
+    if (!controleGravacao.current) return;
+    try {
+      const dataUrl = await controleGravacao.current.parar();
+      setRascunho((r) => (r ? { ...r, audioNovo: dataUrl } : r));
+    } catch {
+      mostrarAviso('Não foi possível salvar a gravação.');
+    } finally {
+      controleGravacao.current = null;
+      setGravando(false);
+    }
+  };
+
+  const cancelarGravacao = () => {
+    controleGravacao.current?.cancelar();
+    controleGravacao.current = null;
+    setGravando(false);
+  };
 
   const escolherImagem = async (arquivo: File) => {
     try {
@@ -148,11 +194,20 @@ export function Editor() {
       pranchaDestinoId: rascunho.pranchaDestinoId || undefined
     };
 
-    if (rascunho.simboloId) {
-      await atualizarSimbolo(prancha.id, rascunho.simboloId, dados, rascunho.imagemNova);
+    let simboloId = rascunho.simboloId;
+    if (simboloId) {
+      await atualizarSimbolo(prancha.id, simboloId, dados, rascunho.imagemNova);
     } else {
-      await adicionarSimbolo(prancha.id, dados, rascunho.imagemNova);
+      simboloId = await adicionarSimbolo(prancha.id, dados, rascunho.imagemNova);
     }
+
+    // Voz gravada: só grava/remove se algo mudou nesta edição.
+    if (rascunho.audioNovo) {
+      await definirAudioSimbolo(prancha.id, simboloId, rascunho.audioNovo);
+    } else if (rascunho.simboloId && !rascunho.audioAtual) {
+      removerAudioSimbolo(prancha.id, simboloId);
+    }
+
     setRascunho(null);
     mostrarAviso(`Símbolo “${texto}” salvo.`);
   };
@@ -320,6 +375,65 @@ export function Editor() {
           </div>
 
           <div>
+            <span className="rotulo-campo">Voz gravada (opcional)</span>
+            <p className="mb-2 text-sm opacity-80">
+              Grave a sua voz (ou de quem a pessoa reconhece) dizendo a palavra. Quando houver
+              uma gravação, ela toca em vez da voz do aparelho.
+            </p>
+            {!gravacaoDisponivel() ? (
+              <p className="cartao text-sm font-bold">
+                Este navegador não permite gravar áudio pelo microfone.
+              </p>
+            ) : (
+              <div className="flex flex-wrap items-center gap-2">
+                {!gravando ? (
+                  <button type="button" className="botao" onClick={() => void comecarGravacao()}>
+                    🎤 GRAVAR MINHA VOZ
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      className="botao botao-falar"
+                      onClick={() => void pararGravacao()}
+                    >
+                      ⏹️ PARAR E SALVAR
+                    </button>
+                    <button type="button" className="botao" onClick={cancelarGravacao}>
+                      CANCELAR GRAVAÇÃO
+                    </button>
+                    <span className="pilula" aria-live="polite">
+                      🔴 gravando…
+                    </span>
+                  </>
+                )}
+                {(rascunho.audioNovo || rascunho.audioAtual) && !gravando && (
+                  <>
+                    <button
+                      type="button"
+                      className="botao"
+                      onClick={() =>
+                        tocarAudioGravado((rascunho.audioNovo ?? rascunho.audioAtual) as string)
+                      }
+                    >
+                      ▶️ OUVIR
+                    </button>
+                    <button
+                      type="button"
+                      className="botao"
+                      onClick={() =>
+                        setRascunho({ ...rascunho, audioNovo: undefined, audioAtual: undefined })
+                      }
+                    >
+                      🗑️ APAGAR GRAVAÇÃO
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div>
             <span className="rotulo-campo">Cor de fundo (padrão Fitzgerald Key)</span>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               {CORES_FITZGERALD.map((cor) => (
@@ -364,7 +478,14 @@ export function Editor() {
             <button type="button" className="botao botao-primario flex-1" onClick={() => void salvar()}>
               ✅ SALVAR
             </button>
-            <button type="button" className="botao flex-1" onClick={() => setRascunho(null)}>
+            <button
+              type="button"
+              className="botao flex-1"
+              onClick={() => {
+                cancelarGravacao();
+                setRascunho(null);
+              }}
+            >
               CANCELAR
             </button>
           </div>
@@ -411,13 +532,17 @@ export function Editor() {
               )}
             </div>
             <div className="min-w-0 flex-1 basis-40">
-              <p className="truncate font-extrabold uppercase">{simbolo.texto}</p>
+              <p className="truncate font-extrabold uppercase">
+                {simbolo.texto} {simbolo.audioId && <span title="Tem voz gravada">🎤</span>}
+              </p>
               <p className="truncate text-sm opacity-80">
                 {simbolo.pranchaDestinoId
                   ? `abre: ${pranchas.find((p) => p.id === simbolo.pranchaDestinoId)?.nome ?? '—'}`
-                  : simbolo.textoFala
-                    ? `fala: ${simbolo.textoFala}`
-                    : 'fala a própria palavra'}
+                  : simbolo.audioId
+                    ? 'toca a voz gravada'
+                    : simbolo.textoFala
+                      ? `fala: ${simbolo.textoFala}`
+                      : 'fala a própria palavra'}
               </p>
             </div>
             {/* No celular os quatro comandos ganham uma linha inteira, em

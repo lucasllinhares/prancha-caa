@@ -183,6 +183,98 @@ const social: Simbolo[] = [
   s('soc-quem-e', 'quem é', '🤔', 'social')
 ];
 
+const numeros: Simbolo[] = [
+  s('num-zero', 'zero', '0️⃣', 'lima'),
+  s('num-um', 'um', '1️⃣', 'lima'),
+  s('num-dois', 'dois', '2️⃣', 'lima'),
+  s('num-tres', 'três', '3️⃣', 'lima'),
+  s('num-quatro', 'quatro', '4️⃣', 'lima'),
+  s('num-cinco', 'cinco', '5️⃣', 'lima'),
+  s('num-seis', 'seis', '6️⃣', 'lima'),
+  s('num-sete', 'sete', '7️⃣', 'lima'),
+  s('num-oito', 'oito', '8️⃣', 'lima'),
+  s('num-nove', 'nove', '9️⃣', 'lima'),
+  s('num-dez', 'dez', '🔟', 'lima'),
+  s('num-muitos', 'muitos', '🔢', 'lima'),
+  s('num-poucos', 'poucos', '🤏', 'lima')
+];
+
+const cores: Simbolo[] = [
+  s('cor-vermelho', 'vermelho', '🔴', 'diversos'),
+  s('cor-azul', 'azul', '🔵', 'diversos'),
+  s('cor-amarelo', 'amarelo', '🟡', 'diversos'),
+  s('cor-verde', 'verde', '🟢', 'diversos'),
+  s('cor-laranja', 'laranja', '🟠', 'diversos'),
+  s('cor-roxo', 'roxo', '🟣', 'diversos'),
+  s('cor-rosa', 'rosa', '🌸', 'diversos'),
+  s('cor-marrom', 'marrom', '🟤', 'diversos'),
+  s('cor-preto', 'preto', '⚫', 'diversos'),
+  s('cor-branco', 'branco', '⚪', 'diversos'),
+  s('cor-cinza', 'cinza', '🌫️', 'diversos')
+];
+
+const dias: Simbolo[] = [
+  s('dia-segunda', 'segunda-feira', '📅', 'descritivos'),
+  s('dia-terca', 'terça-feira', '📅', 'descritivos'),
+  s('dia-quarta', 'quarta-feira', '📅', 'descritivos'),
+  s('dia-quinta', 'quinta-feira', '📅', 'descritivos'),
+  s('dia-sexta', 'sexta-feira', '📅', 'descritivos'),
+  s('dia-sabado', 'sábado', '🎉', 'descritivos'),
+  s('dia-domingo', 'domingo', '☀️', 'descritivos'),
+  s('dia-hoje', 'hoje', '👉', 'descritivos'),
+  s('dia-amanha', 'amanhã', '⏭️', 'descritivos'),
+  s('dia-ontem', 'ontem', '⏮️', 'descritivos')
+];
+
+const clima: Simbolo[] = [
+  s('cli-sol', 'sol', '☀️', 'vermelho'),
+  s('cli-chuva', 'chuva', '🌧️', 'vermelho'),
+  s('cli-nublado', 'nublado', '☁️', 'vermelho'),
+  s('cli-vento', 'vento', '💨', 'vermelho'),
+  s('cli-frio', 'frio', '🥶', 'vermelho'),
+  s('cli-calor', 'calor', '🥵', 'vermelho'),
+  s('cli-quente', 'quente', '🔥', 'vermelho'),
+  s('cli-trovao', 'trovão', '⛈️', 'vermelho'),
+  s('cli-arco-iris', 'arco-íris', '🌈', 'vermelho'),
+  s('cli-umido', 'úmido', '💧', 'vermelho')
+];
+
+const corpo: Simbolo[] = [
+  s('crp-cabeca', 'cabeça', '🗣️', 'substantivos'),
+  s('crp-olho', 'olho', '👁️', 'substantivos'),
+  s('crp-nariz', 'nariz', '👃', 'substantivos'),
+  s('crp-boca', 'boca', '👄', 'substantivos'),
+  s('crp-orelha', 'orelha', '👂', 'substantivos'),
+  s('crp-mao', 'mão', '✋', 'substantivos'),
+  s('crp-pe', 'pé', '🦶', 'substantivos'),
+  s('crp-barriga', 'barriga', '🫃', 'substantivos'),
+  s('crp-braco', 'braço', '💪', 'substantivos'),
+  s('crp-perna', 'perna', '🦵', 'substantivos'),
+  s('crp-dente', 'dente', '🦷', 'substantivos'),
+  s('crp-cabelo', 'cabelo', '💇', 'substantivos')
+];
+
+const higiene: Simbolo[] = [
+  s('hig-lavar-mao', 'lavar mão', '🧼', 'acoes'),
+  s('hig-escovar-dente', 'escovar dente', '🪥', 'acoes'),
+  s('hig-pentear', 'pentear cabelo', '💇', 'acoes'),
+  s('hig-cortar-unha', 'cortar unha', '💅', 'acoes'),
+  s('hig-sabonete', 'usar sabonete', '🧴', 'acoes'),
+  s('hig-banho', 'tomar banho', '🚿', 'acoes'),
+  s('hig-secar', 'secar o corpo', '🩹', 'acoes'),
+  s('hig-fralda', 'trocar fralda', '🧷', 'acoes'),
+  s('hig-limpar-nariz', 'limpar nariz', '🤧', 'acoes'),
+  s('hig-perfume', 'usar perfume', '🌸', 'acoes')
+];
+
+/**
+ * Versão atual do vocabulário de fábrica. Sobe quando novas categorias são
+ * adicionadas ao app. `migrarVocabulario` (em `armazenamento/db.ts`) usa isso
+ * para trazer as categorias novas para perfis que já existiam, sem duplicar
+ * nada nem trazer de volta o que a pessoa já excluiu.
+ */
+export const VERSAO_VOCABULARIO_ATUAL = 2;
+
 /**
  * Pranchas de categoria criadas no primeiro uso do app.
  *
@@ -191,17 +283,32 @@ const social: Simbolo[] = [
  * (bolinhas, listras, grade...), definida em `src/index.css`. Assim a criança
  * reconhece "Comida" e "Pessoas" de longe, pela cor e pelo padrão — e a
  * diferença continua visível para quem não distingue bem as cores.
+ *
+ * `versao` marca em qual atualização do vocabulário a categoria apareceu:
+ * 1 = as 8 categorias originais, 2 = as 6 novas (Números, Cores, Dias da
+ * semana, Clima, Corpo humano, Higiene).
  */
-export const PRANCHAS_CATEGORIA: (Prancha & { cor: Simbolo['cor'] })[] = [
-  { id: 'p-sentimentos', nome: 'Sentimentos', emoji: '😀', cor: 'descritivos', simbolos: sentimentos },
-  { id: 'p-necessidades', nome: 'Necessidades', emoji: '🆘', cor: 'vermelho', simbolos: necessidades },
-  { id: 'p-comida', nome: 'Comida', emoji: '🍽️', cor: 'substantivos', simbolos: comida },
-  { id: 'p-pessoas', nome: 'Pessoas', emoji: '👨', cor: 'pessoas', simbolos: pessoas },
-  { id: 'p-lugares', nome: 'Lugares', emoji: '🏠', cor: 'turquesa', simbolos: lugares },
-  { id: 'p-acoes', nome: 'Ações', emoji: '🏃', cor: 'acoes', simbolos: acoes },
-  { id: 'p-escola', nome: 'Escola', emoji: '🏫', cor: 'roxo', simbolos: escola },
-  { id: 'p-social', nome: 'Social', emoji: '👋', cor: 'social', simbolos: social }
+export const PRANCHAS_CATEGORIA: (Prancha & { cor: Simbolo['cor']; versao: number })[] = [
+  { id: 'p-sentimentos', nome: 'Sentimentos', emoji: '😀', cor: 'descritivos', versao: 1, simbolos: sentimentos },
+  { id: 'p-necessidades', nome: 'Necessidades', emoji: '🆘', cor: 'vermelho', versao: 1, simbolos: necessidades },
+  { id: 'p-comida', nome: 'Comida', emoji: '🍽️', cor: 'substantivos', versao: 1, simbolos: comida },
+  { id: 'p-pessoas', nome: 'Pessoas', emoji: '👨', cor: 'pessoas', versao: 1, simbolos: pessoas },
+  { id: 'p-lugares', nome: 'Lugares', emoji: '🏠', cor: 'turquesa', versao: 1, simbolos: lugares },
+  { id: 'p-acoes', nome: 'Ações', emoji: '🏃', cor: 'acoes', versao: 1, simbolos: acoes },
+  { id: 'p-escola', nome: 'Escola', emoji: '🏫', cor: 'roxo', versao: 1, simbolos: escola },
+  { id: 'p-social', nome: 'Social', emoji: '👋', cor: 'social', versao: 1, simbolos: social },
+  { id: 'p-numeros', nome: 'Números', emoji: '🔢', cor: 'lima', versao: 2, simbolos: numeros },
+  { id: 'p-cores', nome: 'Cores', emoji: '🎨', cor: 'diversos', versao: 2, simbolos: cores },
+  { id: 'p-dias', nome: 'Dias da semana', emoji: '📅', cor: 'descritivos', versao: 2, simbolos: dias },
+  { id: 'p-clima', nome: 'Clima', emoji: '⛅', cor: 'vermelho', versao: 2, simbolos: clima },
+  { id: 'p-corpo', nome: 'Corpo humano', emoji: '🧑', cor: 'substantivos', versao: 2, simbolos: corpo },
+  { id: 'p-higiene', nome: 'Higiene', emoji: '🧼', cor: 'acoes', versao: 2, simbolos: higiene }
 ];
+
+/** Monta o botão de categoria que fica na prancha de Início. */
+function botaoDaCategoria(p: (typeof PRANCHAS_CATEGORIA)[number]): Simbolo {
+  return s(`cat-${p.id}`, p.nome, p.emoji ?? '📁', p.cor, { pranchaDestinoId: p.id });
+}
 
 /** Prancha inicial: cada botão abre uma categoria. */
 export const PRANCHA_INICIAL: Prancha = {
@@ -209,12 +316,32 @@ export const PRANCHA_INICIAL: Prancha = {
   nome: 'Início',
   emoji: '🏠',
   inicial: true,
-  simbolos: PRANCHAS_CATEGORIA.map((p) =>
-    s(`cat-${p.id}`, p.nome, p.emoji ?? '📁', p.cor, { pranchaDestinoId: p.id })
-  )
+  simbolos: PRANCHAS_CATEGORIA.map(botaoDaCategoria)
 };
 
 /** Clona o vocabulário para que cada perfil tenha suas próprias pranchas. */
 export function criarPranchasIniciais(): Prancha[] {
   return JSON.parse(JSON.stringify([PRANCHA_INICIAL, ...PRANCHAS_CATEGORIA])) as Prancha[];
+}
+
+/**
+ * Categorias de fábrica que um perfil ainda não tem, dado a versão de
+ * vocabulário que ele já recebeu. Usado para trazer categorias novas
+ * (Números, Cores...) para perfis criados antes delas existirem.
+ */
+export function categoriasFaltando(
+  versaoJaRecebida: number,
+  idsExistentes: Set<string>
+): (Prancha & { cor: Simbolo['cor']; versao: number })[] {
+  return PRANCHAS_CATEGORIA.filter(
+    (p) => p.versao > versaoJaRecebida && !idsExistentes.has(p.id)
+  );
+}
+
+/** Clona uma categoria (prancha) e devolve também o botão que abre ela. */
+export function clonarCategoriaComBotao(
+  categoria: (typeof PRANCHAS_CATEGORIA)[number]
+): { prancha: Prancha; botao: Simbolo } {
+  const prancha = JSON.parse(JSON.stringify(categoria)) as Prancha;
+  return { prancha, botao: botaoDaCategoria(categoria) };
 }

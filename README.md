@@ -146,9 +146,20 @@ Já vem populado na primeira execução (nenhuma configuração necessária):
 | Ações | 14 |
 | Escola | 14 |
 | Social | 12 |
+| Números | 13 |
+| Cores | 11 |
+| Dias da semana | 10 |
+| Clima | 10 |
+| Corpo humano | 12 |
+| Higiene | 10 |
 
 Os verbos vêm **já conjugados na primeira pessoa** ("quero", "gosto"), como nas pranchas usadas
 por terapeutas no Brasil.
+
+As 6 últimas categorias (Números até Higiene) chegaram numa atualização depois das 8 primeiras.
+Perfis criados antes delas recebem essas categorias automaticamente na próxima vez que abrem o
+app (`migrarVocabulario` em `src/armazenamento/db.ts`) — sem duplicar nada e sem trazer de volta
+uma categoria que a pessoa já tenha excluído por conta própria.
 
 ### Frase natural
 
@@ -180,11 +191,31 @@ Pensado para mãe, pai ou terapeuta usar sem saber tecnologia:
 - excluir com confirmação;
 - cor de fundo pelo **padrão Fitzgerald Key**: pessoas em amarelo, ações em verde, descritivos em
   azul, substantivos em laranja, social em rosa, diversos em branco;
+- **voz gravada pelo microfone**: em vez da voz sintetizada, grava a própria voz (ou a de quem a
+  pessoa reconhece) dizendo a palavra — toca essa gravação sempre que o símbolo é tocado. O
+  áudio fica no IndexedDB (nunca sai do aparelho) e viaja junto no export/import de prancha;
 - **exportar** a prancha como arquivo `.json` e **importar** de um arquivo — é assim que
   terapeutas trocam pranchas entre si, sem servidor nenhum.
 
 Para impedir que a criança entre no editor sem querer, ative o **PIN de 4 dígitos** em
 *Ajustes → Bloqueio da edição*.
+
+---
+
+## Sugestões, rotinas e reforço positivo
+
+- **Sugestões de palavras**: depois de tocar em "quero" ou "não quero", uma faixa de sugestões
+  aparece com os símbolos que a pessoa mais usa (o app aprende sozinho, contando o uso de cada
+  símbolo). Sem uso suficiente ainda, sugere itens da categoria Comida como ponto de partida.
+  Liga e desliga em *Ajustes → Sugestões e rotinas*.
+- **Rotinas prontas**: monte uma sequência normalmente (tocando os símbolos) e toque em
+  **"Salvar esta frase como rotina"**, na barra de frase. A rotina vira um atalho de um toque só
+  na tela principal (🔁 ROTINAS) — toca, fala a sequência inteira e já mostra na barra de frase.
+  Ótimo para rotinas do dia a dia ("hora de dormir", "hora do lanche"). Renomeia e exclui em
+  *Ajustes → Sugestões e rotinas*.
+- **Reforço positivo**: um breve brilho de estrelinhas (menos de 1 segundo, `prefers-reduced-motion`
+  desliga) depois de falar uma frase completa ou usar uma rotina. Desligável em Ajustes para quem
+  prefere menos estímulo visual.
 
 ---
 

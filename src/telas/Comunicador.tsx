@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useApp } from '../estado/AppContext';
 import { BarraFrase } from '../componentes/BarraFrase';
 import { BotaoSimbolo } from '../componentes/BotaoSimbolo';
+import { ReforcoPositivo } from '../componentes/ReforcoPositivo';
+import { classesDaCor } from '../dados/coresFitzgerald';
 import { useLayoutGrade } from '../ganchos/useLayoutGrade';
 import { SIMBOLOS_NUCLEO } from '../dados/vocabularioInicial';
 import type { Simbolo } from '../tipos';
@@ -25,6 +27,8 @@ export function Comunicador() {
     falarFrase,
     apagarUltimo,
     falarTextoLivre,
+    usarRotina,
+    sugestoes,
     perfil
   } = useApp();
 
@@ -189,7 +193,8 @@ export function Comunicador() {
     .join(' › ');
 
   return (
-    <div className="flex h-full min-h-full flex-col">
+    <div className="relative flex h-full min-h-full flex-col">
+      <ReforcoPositivo />
       <BarraFrase />
 
       {/* Navegação: VOLTAR sempre visível e grande + trilha (breadcrumb) */}
@@ -224,6 +229,47 @@ export function Comunicador() {
               onClick={() => falarTextoLivre(f.textoFalado)}
             >
               {f.textoFalado}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {perfil.rotinas.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto px-2 pb-1 pt-1">
+          <span className="pilula shrink-0 self-center">🔁 rotinas</span>
+          {perfil.rotinas.map((r) => (
+            <button
+              key={r.id}
+              type="button"
+              className="botao shrink-0 normal-case"
+              onClick={() => usarRotina(r.id)}
+            >
+              <span aria-hidden="true">{r.emoji}</span> {r.nome}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Sugestões: aparecem depois de "quero"/"não quero", com base no que
+          a pessoa mais usa (ou na categoria Comida, sem uso suficiente ainda). */}
+      {sugestoes.length > 0 && (
+        <div className="flex items-center gap-2 overflow-x-auto px-2 pb-1 pt-1">
+          <span className="pilula shrink-0">💡 sugestões</span>
+          {sugestoes.map((simbolo) => (
+            <button
+              key={simbolo.id}
+              type="button"
+              className={`botao-simbolo tile-medido flex h-16 w-16 shrink-0 flex-col items-center justify-center gap-0 rounded-2xl border-2 p-1 text-center ${classesDaCor(
+                simbolo.cor
+              )}`}
+              onClick={() => ativarSimbolo(simbolo)}
+            >
+              <span aria-hidden="true" className="text-xl leading-none">
+                {simbolo.emoji || '🔤'}
+              </span>
+              <span className="texto-simbolo w-full truncate font-black uppercase">
+                {simbolo.texto}
+              </span>
             </button>
           ))}
         </div>

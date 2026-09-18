@@ -685,6 +685,34 @@ body {
   animation-delay: 280ms;
 }
 
+/* Reforço positivo: estrelinhas que sobem e somem depois de falar uma
+   frase. Curto (700ms), não-repetitivo, e desligável em Ajustes. */
+@keyframes reforco-positivo {
+  0% {
+    transform: translateY(6px) scale(0.5);
+    opacity: 0;
+  }
+  35% {
+    transform: translateY(-6px) scale(1.15);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-26px) scale(0.9);
+    opacity: 0;
+  }
+}
+.reforco-positivo {
+  display: inline-block;
+  animation: reforco-positivo 700ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reforco-positivo {
+    animation: none !important;
+    opacity: 0 !important;
+  }
+}
+
 /* ==========================================================================
    ESTILO VISUAL PADRÃO: "CONTORNO"
    --------------------------------------------------------------------------
