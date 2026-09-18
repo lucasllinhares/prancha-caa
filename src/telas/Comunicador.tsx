@@ -47,18 +47,33 @@ export function Comunicador() {
     }
   }, [pranchas, pilha, pranchaInicial.id]);
 
-  const totalPaginas = Math.max(1, Math.ceil(pranchaAtual.simbolos.length / porPagina));
+  // A prancha de Início lista categorias (pastas) — todas aparecem juntas,
+  // sem paginar, para a pessoa ver o mapa completo do app de uma vez. A
+  // paginação continua valendo dentro de cada categoria, onde pode haver
+  // muitas palavras.
+  const semPaginacao = Boolean(pranchaAtual.inicial);
+  const totalPaginas = semPaginacao
+    ? 1
+    : Math.max(1, Math.ceil(pranchaAtual.simbolos.length / porPagina));
   const paginaSegura = Math.min(pagina, totalPaginas - 1);
   const simbolosVisiveis = useMemo(
-    () => pranchaAtual.simbolos.slice(paginaSegura * porPagina, (paginaSegura + 1) * porPagina),
-    [pranchaAtual, paginaSegura, porPagina]
+    () =>
+      semPaginacao
+        ? pranchaAtual.simbolos
+        : pranchaAtual.simbolos.slice(paginaSegura * porPagina, (paginaSegura + 1) * porPagina),
+    [pranchaAtual, paginaSegura, porPagina, semPaginacao]
   );
+
+  // Na tela de Início uma coluna a mais cabe bem (os tiles de categoria têm
+  // um texto curto só, diferente das palavras) — isso reduz quantas
+  // fileiras são necessárias para ver as 14+ categorias.
+  const colunasBase = semPaginacao ? colunasTela + 1 : colunasTela;
 
   // Quando a página tem menos símbolos do que colunas cabem na tela (ex.:
   // últimos 2 itens de uma categoria), usamos só as colunas necessárias —
   // assim a fileira final não fica esticada, com os tiles enormes e vazios
   // do lado. É esse valor (não o da tela) que manda na grade e nas setas.
-  const colunas = Math.max(1, Math.min(colunasTela, simbolosVisiveis.length || colunasTela));
+  const colunas = Math.max(1, Math.min(colunasBase, simbolosVisiveis.length || colunasBase));
 
   const nucleo = config.mostrarNucleo ? SIMBOLOS_NUCLEO : [];
   /** Ordem usada pela varredura e pelas setas do teclado. */
@@ -179,12 +194,13 @@ export function Comunicador() {
   // Frases favoritas ficam à mão na tela principal.
   const favoritas = perfil.historico.filter((h) => h.favorita).slice(0, 4);
 
-  /** Mostra quantas palavras existem dentro de uma pasta, como nas capas de
-   *  categoria das referências visuais (etiqueta pequena no canto do tile). */
+  /** Quantos símbolos existem dentro de uma pasta — só o número, num
+   *  selinho discreto no canto do tile (sem a palavra "palavras", para
+   *  ficar mais simples de ler rápido). */
   const etiquetaDaPasta = (simbolo: Simbolo): string | undefined => {
     if (!simbolo.pranchaDestinoId) return undefined;
     const destino = pranchas.find((p) => p.id === simbolo.pranchaDestinoId);
-    return destino ? `${destino.simbolos.length} palavras` : undefined;
+    return destino ? String(destino.simbolos.length) : undefined;
   };
 
   const trilha = pilha
@@ -213,12 +229,20 @@ export function Comunicador() {
             🏠
           </span>
         </button>
-        <p className="pilula min-w-0 truncate" aria-label="Você está em">
-          {pranchaAtual.emoji} {trilha}
-        </p>
+        {/* A trilha só aparece dentro de uma categoria — na tela de Início
+            já dá pra ver onde se está pelo próprio ícone da casa, então o
+            selo "Início" ali do lado seria só repetição. */}
+        {pilha.length > 1 && (
+          <p className="pilula min-w-0 truncate" aria-label="Você está em">
+            {pranchaAtual.emoji} {trilha}
+          </p>
+        )}
       </nav>
 
-      {favoritas.length > 0 && (
+      {/* Favoritas e rotinas são atalhos de partida — só fazem sentido na
+          tela de Início, para não disputar espaço com os símbolos quando a
+          pessoa já está dentro de uma categoria. */}
+      {pilha.length === 1 && favoritas.length > 0 && (
         <div className="flex gap-2 overflow-x-auto px-2 pb-1 pt-1">
           <span className="pilula shrink-0 self-center">⭐ favoritas</span>
           {favoritas.map((f) => (
@@ -234,7 +258,7 @@ export function Comunicador() {
         </div>
       )}
 
-      {perfil.rotinas.length > 0 && (
+      {pilha.length === 1 && perfil.rotinas.length > 0 && (
         <div className="flex gap-2 overflow-x-auto px-2 pb-1 pt-1">
           <span className="pilula shrink-0 self-center">🔁 rotinas</span>
           {perfil.rotinas.map((r) => (
@@ -275,8 +299,13 @@ export function Comunicador() {
         </div>
       )}
 
-      {/* Grade de símbolos */}
-      <main className="relative flex min-h-0 flex-1 flex-col p-2 sm:p-3 lg:p-4">
+      {/* Grade de símbolos. `main` sempre rola por conta própria (nunca a
+          página toda) — assim o cabeçalho e o rodapé do núcleo continuam
+          sempre fixos e visíveis. Nas categorias com paginação, a grade
+          normalmente já cabe inteira (linhas com teto de 22vh); na tela de
+          Início, com todas as 14+ categorias juntas, é o próprio `main`
+          que rola para mostrar o resto. */}
+      <main className="relative flex min-h-0 flex-1 flex-col overflow-y-auto p-2 sm:p-3 lg:p-4">
         {config.varreduraAtiva && (
           // Durante a varredura, um toque em qualquer lugar da área de
           // símbolos seleciona o item que está destacado.
@@ -298,18 +327,22 @@ export function Comunicador() {
             // A chave muda ao trocar de prancha ou de página: os tiles
             // remontam e a animação de entrada acontece de novo.
             key={`${pranchaAtual.id}-${paginaSegura}`}
-            className="grid min-h-0 flex-1 content-center gap-2 sm:gap-3 lg:gap-4"
+            className={`grid gap-2 sm:gap-3 lg:gap-4 ${
+              semPaginacao ? 'shrink-0' : 'min-h-0 flex-1 content-center'
+            }`}
             style={{
-              // As colunas vêm do tamanho da tela e as linhas dividem a
-              // altura disponível, sempre respeitando o alvo mínimo de 64px
-              // e um teto de 30% da altura da tela — sem o teto, em telas
-              // bem altas e estreitas (tablet em pé) sobra tanta altura que
-              // os símbolos viravam retângulos compridos e deformados.
               gridTemplateColumns: `repeat(${colunas}, minmax(0, 1fr))`,
-              gridTemplateRows: `repeat(${Math.max(
-                1,
-                Math.ceil(simbolosVisiveis.length / colunas)
-              )}, minmax(64px, 22vh))`
+              // Categorias (Início): cada linha tem uma altura confortável e
+              // fixa — a grade cresce pelo conteúdo, a página é que rola.
+              // Palavras dentro de uma categoria: as linhas dividem a altura
+              // disponível, com teto de 22vh (senão, em telas altas e
+              // estreitas, os símbolos viravam retângulos compridos).
+              gridTemplateRows: semPaginacao
+                ? `repeat(${Math.max(1, Math.ceil(simbolosVisiveis.length / colunas))}, minmax(92px, auto))`
+                : `repeat(${Math.max(
+                    1,
+                    Math.ceil(simbolosVisiveis.length / colunas)
+                  )}, minmax(64px, 22vh))`
             }}
           >
             {simbolosVisiveis.map((simbolo, i) => {
@@ -357,12 +390,16 @@ export function Comunicador() {
         )}
       </main>
 
-      {/* Faixa fixa de vocabulário nuclear */}
+      {/* Faixa fixa de vocabulário nuclear — quebra em linhas (sem rolagem
+          lateral), para todas as 15 palavras ficarem visíveis de uma vez. */}
       {config.mostrarNucleo && (
         <footer className="sticky bottom-0 z-30 px-2 pb-2 sm:px-3 lg:px-4" aria-label="Vocabulário nuclear">
-          <div className="cartao flex gap-2 overflow-x-auto p-2">
+          <div
+            className="cartao grid gap-1.5 p-2 sm:gap-2"
+            style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(58px, 1fr))' }}
+          >
             {SIMBOLOS_NUCLEO.map((simbolo, i) => (
-              <div key={simbolo.id} className="h-[80px] w-[80px] shrink-0">
+              <div key={simbolo.id} className="aspect-square">
                 <BotaoSimbolo
                   ref={(el) => {
                     refsBotoes.current[i] = el;
