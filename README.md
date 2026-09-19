@@ -100,6 +100,7 @@ src/
 ├── dados/
 │   ├── vocabularioInicial.ts   # vocabulário inicial em PT-BR (núcleo + 14 categorias)
 │   ├── modelos.ts              # pranchetas prontas (Escola, Casa, Refeição...) e banco de palavras
+│   ├── cartoesIlustrados.ts    # os 9 cartões ilustrados (imagens em public/cartoes)
 │   ├── coresFitzgerald.ts      # padrão Fitzgerald Key (cores por categoria gramatical)
 │   └── emojisSugeridos.ts      # emojis oferecidos no editor
 │
@@ -129,6 +130,7 @@ src/
 │
 └── telas/
     ├── Comunicador.tsx         # tela principal: grade, pastas, núcleo fixo, varredura, atalhos
+    ├── Montar.tsx              # montar pranchetas por momento arrastando e soltando
     ├── Editor.tsx              # criar/editar pranchas e símbolos, exportar e importar .json
     ├── Configuracoes.tsx       # voz, tela, acessibilidade e PIN
     ├── Perfis.tsx              # múltiplos perfis no mesmo aparelho
@@ -244,6 +246,40 @@ Também é possível **somar** as categorias de um modelo a uma prancheta que j�
 - **⬇️ Exportar prancheta**: gera um único arquivo `.json` com todas as categorias, imagens e
   vozes gravadas; **⬆️ Importar prancheta** (aba Perfis) recebe o arquivo de um colega ou
   terapeuta e cria um novo perfil. Tudo continua sem servidor e sem enviar dados a ninguém.
+
+---
+
+## Montar prancheta por momento (arrastar e soltar)
+
+Aba **Montar**: pensada para a professora (ou terapeuta, ou família) criar a prancheta de um aluno
+para um momento específico — escola, almoço, aula — só com as palavras que ele provavelmente vai
+usar ali.
+
+- **Embaixo ficam todos os itens**: os cartões ilustrados, as categorias do aluno e as palavras de
+  fábrica que ele não tem. Tem busca e cada grupo abre e fecha.
+- **Em cima fica a prancheta em montagem.** É só **arrastar e soltar** os itens nela. No celular,
+  segure um instante e arraste (rolar a lista continua normal). Funciona com mouse e com o dedo.
+- **Vários de uma vez**: toque em vários itens para marcá-los (ou use *Marcar todos* de um grupo) e
+  arraste um deles — todos os marcados vão juntos. Também há o botão *Adicionar à prancheta*.
+- **Reordenar** arrastando dentro da prancheta (ou com as setas do teclado); **tirar** com o ✕ ou
+  arrastando o item de volta para a lista.
+- **Salvar**: dá nome e ícone (🏫 Escola, 🍽️ Almoço, 📚 Aula...). A prancheta vira uma **versão** do
+  perfil do aluno e já fica em uso. Um perfil pode ter quantas versões quiser.
+- Na tela **Falar**, um seletor ao lado do 🏠 troca entre a prancheta *Completa* (todas as
+  categorias) e cada versão. A versão mostra só os itens escolhidos, em blocos grandes; a faixa de
+  palavras básicas fixas só aparece se você marcar essa opção ao montar.
+- As versões viajam junto no **exportar/importar prancheta** e no **salvar como modelo**.
+
+### Cartões ilustrados e imagens próprias
+
+- Os 9 primeiros cartões ilustrados (eu, não, mais, acabou, sim, você, ajuda, ir, parar) vêm com o
+  app, em `public/cartoes`, e funcionam offline. No Montar, o botão *Começar com os 9 cartões*
+  já preenche a prancheta com eles.
+- Um bloco pode ser um **cartão de imagem**: a imagem já traz fundo, desenho e palavra, então o
+  bloco mostra só ela (quadrada, com sombra no estilo do app). A palavra continua sendo falada.
+- Para usar imagens suas: *Editar → 🖼️ Adicionar várias imagens (cartões)* envia várias de uma
+  vez (o nome do arquivo vira a palavra), ou, ao editar um símbolo, marque *"A imagem já é o
+  cartão inteiro"*. As imagens ficam só no aparelho.
 
 ---
 

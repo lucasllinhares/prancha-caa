@@ -2,16 +2,18 @@ import { useEffect, useState } from 'react';
 import { useApp } from './estado/AppContext';
 import { Comunicador } from './telas/Comunicador';
 import { Editor } from './telas/Editor';
+import { Montar } from './telas/Montar';
 import { Configuracoes } from './telas/Configuracoes';
 import { Historico } from './telas/Historico';
 import { Perfis } from './telas/Perfis';
 import { BloqueioPin } from './componentes/BloqueioPin';
 
-type Aba = 'falar' | 'editar' | 'historico' | 'perfis' | 'ajustes';
+type Aba = 'falar' | 'montar' | 'editar' | 'historico' | 'perfis' | 'ajustes';
 
 /** Cada aba tem sua própria cor, como as capas coloridas das referências. */
 const ABAS: { id: Aba; rotulo: string; icone: string; cor: string }[] = [
   { id: 'falar', rotulo: 'Falar', icone: '💬', cor: 'var(--descritivos)' },
+  { id: 'montar', rotulo: 'Montar', icone: '🧩', cor: 'var(--turquesa)' },
   { id: 'editar', rotulo: 'Editar', icone: '✏️', cor: 'var(--acoes)' },
   { id: 'historico', rotulo: 'Histórico', icone: '🕘', cor: 'var(--substantivos)' },
   { id: 'perfis', rotulo: 'Perfis', icone: '👥', cor: 'var(--pessoas)' },
@@ -47,6 +49,7 @@ export function App() {
         ) : (
           <>
             {aba === 'falar' && <Comunicador />}
+            {aba === 'montar' && <Montar onIrParaFalar={() => setAba('falar')} />}
             {aba === 'editar' && <Editor />}
             {aba === 'historico' && <Historico />}
             {aba === 'perfis' && <Perfis />}
@@ -65,7 +68,7 @@ export function App() {
         }}
         aria-label="Seções do aplicativo"
       >
-        {/* No celular e tablet, as 5 abas dividem a largura igualmente
+        {/* No celular e tablet, as 6 abas dividem a largura igualmente
             (fácil de mirar com o dedo). No computador (lg+), viram botões
             de tamanho natural, lado a lado e centralizados — como uma barra
             de abas de desktop, sem esticar. */}

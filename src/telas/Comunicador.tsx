@@ -18,7 +18,7 @@ const ZONA_MORTA_MS = 300;
  */
 export function Comunicador() {
   const {
-    pranchas,
+    pranchas: pranchasReais,
     config,
     imagens,
     frase,
@@ -29,8 +29,30 @@ export function Comunicador() {
     falarTextoLivre,
     usarRotina,
     sugestoes,
-    perfil
+    perfil,
+    versoes,
+    ativarVersao
   } = useApp();
+
+  // Versão de prancheta em uso (escola, almoço...): vira a tela inicial, com
+  // só os itens escolhidos. Sem versão, vale a prancheta completa (categorias).
+  const versaoAtiva = versoes.find((v) => v.id === perfil.versaoAtivaId);
+  const pranchas = useMemo(
+    () =>
+      versaoAtiva
+        ? [
+            {
+              id: versaoAtiva.id,
+              nome: versaoAtiva.nome,
+              emoji: versaoAtiva.emoji,
+              simbolos: versaoAtiva.simbolos,
+              inicial: true
+            },
+            ...pranchasReais.map((p) => ({ ...p, inicial: false }))
+          ]
+        : pranchasReais,
+    [versaoAtiva, pranchasReais]
+  );
 
   const pranchaInicial = pranchas.find((p) => p.inicial) ?? pranchas[0];
   const [pilha, setPilha] = useState<string[]>([pranchaInicial.id]);
@@ -108,7 +130,10 @@ export function Comunicador() {
   const fontesProntas = useFontesProntas();
   const colunasPelaPalavra = useMemo(() => {
     if (larguraMain <= 0) return colunasFinal;
-    const emMaximo = simbolosVisiveis.reduce((max, s) => Math.max(max, larguraEmEm(s.texto)), 0);
+    const emMaximo = simbolosVisiveis.reduce(
+      (max, s) => (s.imagemCheia ? max : Math.max(max, larguraEmEm(s.texto))),
+      0
+    );
     const larguraMinimaBloco = emMaximo * 10.5 + 18; // + borda e margem interna
     const espaco = 8; // espaço entre blocos
     return Math.max(2, Math.floor((larguraMain + espaco) / (larguraMinimaBloco + espaco)));
@@ -118,7 +143,10 @@ export function Comunicador() {
   const colunasPossiveis = Math.min(colunasFinal, colunasPelaPalavra);
   const colunas = Math.max(1, Math.min(colunasPossiveis, simbolosVisiveis.length || colunasPossiveis));
 
-  const nucleo = config.mostrarNucleo ? SIMBOLOS_NUCLEO : [];
+  // A faixa de palavras básicas some numa versão de prancheta, a não ser que
+  // a pessoa tenha pedido para ela aparecer ali.
+  const mostrarNucleo = config.mostrarNucleo && (!versaoAtiva || versaoAtiva.comNucleo);
+  const nucleo = mostrarNucleo ? SIMBOLOS_NUCLEO : [];
   /** Ordem usada pela varredura e pelas setas do teclado. */
   const itensNavegaveis = useMemo(() => [...nucleo, ...simbolosVisiveis], [nucleo, simbolosVisiveis]);
 
@@ -272,6 +300,28 @@ export function Comunicador() {
             🏠
           </span>
         </button>
+        {/* Versão da prancheta (escola, almoço, aula...): troca a tela inteira.
+            Fica na mesma linha do VOLTAR para não roubar altura da grade. */}
+        {versoes.length > 0 && (
+          <>
+            <label className="sr-only" htmlFor="seletor-versao">
+              Prancheta em uso
+            </label>
+            <select
+              id="seletor-versao"
+              className="campo min-h-toque min-w-0 flex-1 truncate !px-2 text-sm font-extrabold sm:text-base"
+              value={versaoAtiva?.id ?? ''}
+              onChange={(e) => ativarVersao(e.target.value || null)}
+            >
+              <option value="">🧰 Completa</option>
+              {versoes.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.emoji} {v.nome}
+                </option>
+              ))}
+            </select>
+          </>
+        )}
         {/* A trilha só aparece dentro de uma categoria — na tela de Início
             já dá pra ver onde se está pelo próprio ícone da casa, então o
             selo "Início" ali do lado seria só repetição. */}
@@ -398,6 +448,7 @@ export function Comunicador() {
                   destacado={config.varreduraAtiva && indiceVarredura === indiceGlobal}
                   etiqueta={etiquetaDaPasta(simbolo)}
                   indiceEntrada={i}
+                  quadrado={semPaginacao}
                 />
               );
             })}
@@ -431,7 +482,7 @@ export function Comunicador() {
 
       {/* Faixa fixa de vocabulário nuclear — quebra em linhas (sem rolagem
           lateral), para todas as 15 palavras ficarem visíveis de uma vez. */}
-      {config.mostrarNucleo && (
+      {mostrarNucleo && (
         <footer className="sticky bottom-0 z-30 px-2 pb-2 sm:px-3 lg:px-4" aria-label="Vocabulário nuclear">
           <div
             className="cartao grid gap-1.5 p-2 sm:gap-2"

@@ -5,7 +5,11 @@
  * O lado maior fica com no máximo `ladoMaximo` pixels (300 por padrão), o que
  * mantém o IndexedDB leve mesmo com centenas de símbolos personalizados.
  */
-export async function redimensionarImagem(arquivo: File, ladoMaximo = 300): Promise<string> {
+export async function redimensionarImagem(
+  arquivo: File,
+  ladoMaximo = 300,
+  manterTransparencia = false
+): Promise<string> {
   const dataUrlOriginal = await lerComoDataUrl(arquivo);
   const img = await carregarImagem(dataUrlOriginal);
 
@@ -20,9 +24,14 @@ export async function redimensionarImagem(arquivo: File, ladoMaximo = 300): Prom
   if (!ctx) throw new Error('Não foi possível processar a imagem neste navegador.');
 
   // Fundo branco: evita que PNG com transparência fique escuro ao virar JPEG.
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, largura, altura);
+  // Cartões de imagem (com cantos arredondados) mantêm a transparência.
+  if (!manterTransparencia) {
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, largura, altura);
+  }
   ctx.drawImage(img, 0, 0, largura, altura);
+
+  if (manterTransparencia) return canvas.toDataURL('image/webp', 0.88);
 
   // JPEG com qualidade 0,82 dá um arquivo pequeno e imagem ainda nítida.
   return canvas.toDataURL('image/jpeg', 0.82);

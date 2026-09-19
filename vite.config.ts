@@ -31,7 +31,7 @@ export default defineConfig({
       },
       workbox: {
         // Tudo que o app precisa e estatico: cacheamos no primeiro acesso.
-        globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
+        globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2,webp}'],
         cleanupOutdatedCaches: true,
         navigateFallback: 'index.html'
       }

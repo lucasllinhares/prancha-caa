@@ -31,6 +31,10 @@ interface Rascunho {
   audioNovo?: string;
   /** Áudio que já estava salvo no símbolo. */
   audioAtual?: string;
+  /** A imagem é o cartão inteiro (fundo + desenho + palavra): mostrar só ela. */
+  imagemCheia: boolean;
+  /** Imagem que vem com o app (cartões ilustrados), quando o símbolo usa uma. */
+  imagemUrl?: string;
 }
 
 const RASCUNHO_VAZIO: Rascunho = {
@@ -39,7 +43,8 @@ const RASCUNHO_VAZIO: Rascunho = {
   emoji: '',
   cor: 'diversos',
   pranchaDestinoId: '',
-  categoriaId: ''
+  categoriaId: '',
+  imagemCheia: false
 };
 
 /** Formulário de categoria (nova ou em edição). */
@@ -92,6 +97,7 @@ export function Editor() {
   const controleGravacao = useRef<ControleGravacao | null>(null);
   const inputImagem = useRef<HTMLInputElement>(null);
   const inputJson = useRef<HTMLInputElement>(null);
+  const inputVarias = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (prancha && prancha.id !== pranchaId) setPranchaId(prancha.id);
@@ -197,9 +203,40 @@ export function Editor() {
       emoji: simbolo.emoji ?? '',
       cor: simbolo.cor,
       pranchaDestinoId: simbolo.pranchaDestinoId ?? '',
-      imagemAtual: simbolo.imagemId ? imagens[simbolo.imagemId] : undefined,
+      imagemAtual: simbolo.imagemId ? imagens[simbolo.imagemId] : simbolo.imagemUrl,
+      imagemUrl: simbolo.imagemUrl,
+      imagemCheia: Boolean(simbolo.imagemCheia),
       audioAtual: simbolo.audioId ? audios[simbolo.audioId] : undefined
     });
+  };
+
+  /**
+   * Envia várias imagens de uma vez: cada uma vira um bloco-cartão na
+   * categoria escolhida. O nome do arquivo vira a palavra (dá para mudar
+   * depois, tocando no bloco).
+   */
+  const adicionarVariasImagens = async (arquivos: File[]) => {
+    let adicionadas = 0;
+    for (const arquivo of arquivos) {
+      try {
+        const dataUrl = await redimensionarImagem(arquivo, 420, true);
+        const texto =
+          arquivo.name
+            .replace(/\.[^.]+$/, '')
+            .replace(/[-_]+/g, ' ')
+            .trim()
+            .slice(0, 30) || 'imagem';
+        await adicionarSimbolo(prancha.id, { texto, cor: 'diversos', imagemCheia: true }, dataUrl);
+        adicionadas++;
+      } catch {
+        // Uma imagem inválida não impede as outras.
+      }
+    }
+    mostrarAviso(
+      adicionadas === 0
+        ? 'Não foi possível usar essas imagens.'
+        : `${adicionadas} imagem${adicionadas > 1 ? 'ns' : ''} adicionada${adicionadas > 1 ? 's' : ''} em “${prancha.nome}”. Toque em cada bloco para trocar a palavra.`
+    );
   };
 
   // --- Gravação de voz pelo microfone ---------------------------------------
@@ -235,7 +272,12 @@ export function Editor() {
   const escolherImagem = async (arquivo: File) => {
     try {
       // Redimensionada para 300px no próprio aparelho antes de salvar.
-      const dataUrl = await redimensionarImagem(arquivo, 300);
+      // Se for um cartão inteiro, guarda com transparência e um pouco maior.
+      const dataUrl = await redimensionarImagem(
+        arquivo,
+        rascunho?.imagemCheia ? 420 : 300,
+        Boolean(rascunho?.imagemCheia)
+      );
       setRascunho((r) => (r ? { ...r, imagemNova: dataUrl } : r));
     } catch (erro) {
       mostrarAviso(erro instanceof Error ? erro.message : 'Não foi possível usar essa imagem.');
@@ -255,7 +297,10 @@ export function Editor() {
       textoFala: rascunho.textoFala.trim() || undefined,
       emoji: rascunho.emoji || undefined,
       cor: rascunho.cor,
-      pranchaDestinoId: rascunho.pranchaDestinoId || undefined
+      pranchaDestinoId: rascunho.pranchaDestinoId || undefined,
+      imagemCheia: rascunho.imagemCheia && Boolean(rascunho.imagemNova || rascunho.imagemAtual),
+      // Foto nova (ou emoji no lugar da imagem) substitui a imagem que veio com o app.
+      imagemUrl: rascunho.imagemNova || !rascunho.imagemAtual ? undefined : rascunho.imagemUrl
     };
 
     let simboloId = rascunho.simboloId;
@@ -356,7 +401,26 @@ export function Editor() {
           <button type="button" className="botao" onClick={() => inputJson.current?.click()}>
             ⬆️ IMPORTAR CATEGORIA
           </button>
+          <button
+            type="button"
+            className="botao col-span-2"
+            onClick={() => inputVarias.current?.click()}
+          >
+            🖼️ ADICIONAR VÁRIAS IMAGENS (CARTÕES)
+          </button>
         </div>
+        <input
+          ref={inputVarias}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={(e) => {
+            const arquivos = Array.from(e.target.files ?? []);
+            e.target.value = '';
+            if (arquivos.length > 0) void adicionarVariasImagens(arquivos);
+          }}
+        />
         <input
           ref={inputJson}
           type="file"
@@ -567,6 +631,17 @@ export function Editor() {
                 e.target.value = '';
               }}
             />
+            {(rascunho.imagemNova || rascunho.imagemAtual) && (
+              <label className="mb-2 flex min-h-toque items-center gap-2 text-sm font-bold">
+                <input
+                  type="checkbox"
+                  className="h-5 w-5"
+                  checked={rascunho.imagemCheia}
+                  onChange={(e) => setRascunho({ ...rascunho, imagemCheia: e.target.checked })}
+                />
+                A imagem já é o cartão inteiro (com fundo e palavra): mostrar só ela no bloco
+              </label>
+            )}
             <EscolherEmoji
               valor={rascunho.emoji}
               onEscolher={(emoji) => setRascunho({ ...rascunho, emoji })}
@@ -746,8 +821,14 @@ export function Editor() {
                 simbolo.cor
               )}`}
             >
-              {simbolo.imagemId && imagens[simbolo.imagemId] ? (
-                <img src={imagens[simbolo.imagemId]} alt="" className="h-full w-full rounded-xl object-cover" />
+              {(simbolo.imagemId ? imagens[simbolo.imagemId] : simbolo.imagemUrl) ? (
+                <img
+                  src={simbolo.imagemId ? imagens[simbolo.imagemId] : simbolo.imagemUrl}
+                  alt=""
+                  className={`h-full w-full rounded-xl ${
+                    simbolo.imagemCheia ? 'object-contain' : 'object-cover'
+                  }`}
+                />
               ) : (
                 <span aria-hidden="true" className="text-3xl">
                   {simbolo.emoji || '🔤'}

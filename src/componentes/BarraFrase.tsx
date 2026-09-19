@@ -58,12 +58,20 @@ export function BarraFrase() {
               >
                 {/* Mesmo círculo dos tiles, para a palavra na frase ter a
                     mesma aparência do símbolo que foi tocado. */}
-                <span className="prato-emoji flex h-11 w-11 shrink-0 items-center justify-center rounded-full">
-                  {simbolo.imagemId && imagens[simbolo.imagemId] ? (
+                <span
+                  className={`flex h-11 w-11 shrink-0 items-center justify-center ${
+                    simbolo.imagemCheia ? '' : 'prato-emoji rounded-full'
+                  }`}
+                >
+                  {(simbolo.imagemId ? imagens[simbolo.imagemId] : simbolo.imagemUrl) ? (
                     <img
-                      src={imagens[simbolo.imagemId]}
+                      src={simbolo.imagemId ? imagens[simbolo.imagemId] : simbolo.imagemUrl}
                       alt=""
-                      className="h-full w-full rounded-full object-cover"
+                      className={
+                        simbolo.imagemCheia
+                          ? 'h-full w-full rounded-lg object-contain'
+                          : 'h-full w-full rounded-full object-cover'
+                      }
                     />
                   ) : (
                     <span aria-hidden="true" className="emoji-simbolo">

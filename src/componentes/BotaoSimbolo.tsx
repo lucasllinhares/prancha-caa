@@ -16,6 +16,10 @@ interface Props {
   etiqueta?: string;
   /** Posição na grade, usada para a entrada em sequência dos tiles. */
   indiceEntrada?: number;
+  /** Cartões de imagem: o bloco fica quadrado, com a altura vinda da largura. */
+  quadrado?: boolean;
+  /** Fora da ordem de foco do teclado (miniaturas que só enfeitam outra ação). */
+  semFoco?: boolean;
 }
 
 /**
@@ -27,10 +31,13 @@ interface Props {
  * `prefers-reduced-motion`.
  */
 export const BotaoSimbolo = forwardRef(function BotaoSimbolo(
-  { simbolo, imagemUrl, onAtivar, destacado, compacto, etiqueta, indiceEntrada }: Props,
+  { simbolo, imagemUrl, onAtivar, destacado, compacto, etiqueta, indiceEntrada, quadrado, semFoco }: Props,
   ref: ForwardedRef<HTMLButtonElement>
 ) {
   const ehPasta = Boolean(simbolo.pranchaDestinoId);
+  // Imagem que vem com o app (cartões ilustrados) ou foto guardada no aparelho.
+  const urlDaImagem = imagemUrl ?? simbolo.imagemUrl;
+  const ehCartao = Boolean(simbolo.imagemCheia && urlDaImagem);
   const emoji = simbolo.emoji || (ehPasta ? '📁' : '🔤');
 
   // Largura real (em "em") da maior palavra do texto, medida na fonte do app.
@@ -58,10 +65,45 @@ export const BotaoSimbolo = forwardRef(function BotaoSimbolo(
     onAtivar(simbolo);
   };
 
+  if (ehCartao) {
+    // Cartão inteiro: a própria imagem já traz fundo, desenho e palavra. O
+    // texto fica só para leitores de tela e para a fala.
+    return (
+      <button
+        ref={ref}
+        type="button"
+        tabIndex={semFoco ? -1 : undefined}
+        data-varredura={destacado ? 'ativo' : undefined}
+        onClick={aoTocar}
+        aria-label={simbolo.texto}
+        className={[
+          'botao-simbolo cartao-imagem relative block min-h-toque min-w-toque',
+          quadrado && !compacto ? 'aspect-square w-full' : 'h-full w-full',
+          pulando ? 'tocado' : '',
+          indiceEntrada !== undefined ? 'entrando' : ''
+        ].join(' ')}
+        style={
+          indiceEntrada !== undefined
+            ? { animationDelay: `${Math.min(indiceEntrada, 15) * 22}ms` }
+            : undefined
+        }
+      >
+        <img
+          src={urlDaImagem}
+          alt=""
+          className="h-full w-full object-contain"
+          draggable={false}
+        />
+        <span className="sr-only">{simbolo.texto}</span>
+      </button>
+    );
+  }
+
   return (
     <button
       ref={ref}
       type="button"
+      tabIndex={semFoco ? -1 : undefined}
       data-varredura={destacado ? 'ativo' : undefined}
       onClick={aoTocar}
       aria-label={ehPasta ? `Abrir pasta ${simbolo.texto}` : simbolo.texto}
@@ -95,9 +137,9 @@ export const BotaoSimbolo = forwardRef(function BotaoSimbolo(
         ].join(' ')}
         style={compacto ? undefined : { aspectRatio: '1', width: 'auto', maxWidth: '100%' }}
       >
-        {imagemUrl ? (
+        {urlDaImagem ? (
           <img
-            src={imagemUrl}
+            src={urlDaImagem}
             alt=""
             className="h-full w-full rounded-full object-cover"
             draggable={false}

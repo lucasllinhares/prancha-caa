@@ -42,6 +42,28 @@ export interface Simbolo {
   cor: CorFitzgerald;
   /** Quando preenchido, tocar no simbolo navega para essa prancha. */
   pranchaDestinoId?: string;
+  /** Endereço de uma imagem que já vem com o app (ex.: cartões ilustrados). */
+  imagemUrl?: string;
+  /**
+   * A imagem é o CARTÃO INTEIRO (já traz fundo colorido e o texto desenhado).
+   * Nesse caso o bloco mostra só a imagem, sem círculo nem texto por cima.
+   */
+  imagemCheia?: boolean;
+}
+
+/**
+ * Versão de prancheta: uma tela única e enxuta, com só os itens que a pessoa
+ * escolheu para um momento (escola, almoço, aula...). Um mesmo perfil pode ter
+ * várias versões e alternar entre elas na tela de Falar.
+ */
+export interface VersaoPrancheta {
+  id: string;
+  nome: string;
+  emoji: string;
+  /** Cópias dos itens escolhidos, na ordem em que aparecem. */
+  simbolos: Simbolo[];
+  /** Mostrar também a faixa fixa de palavras básicas (núcleo) nesta versão. */
+  comNucleo: boolean;
 }
 
 /** Uma prancha (tela de simbolos). Pranchas podem ter pranchas filhas. */
@@ -139,6 +161,10 @@ export interface Perfil {
    * nem trazer de volta categorias que a pessoa já excluiu.
    */
   versaoVocabulario: number;
+  /** Versões de prancheta por momento (escola, almoço...). */
+  versoes?: VersaoPrancheta[];
+  /** Versão em uso na tela de Falar; vazio = a prancheta completa (categorias). */
+  versaoAtivaId?: string;
 }
 
 /**
@@ -182,6 +208,8 @@ export interface ArquivoPacote {
   nome: string;
   emoji?: string;
   pranchas: Prancha[];
+  /** Versões de prancheta por momento (escola, almoço...). */
+  versoes?: VersaoPrancheta[];
   imagens: Record<string, string>;
   audios: Record<string, string>;
 }

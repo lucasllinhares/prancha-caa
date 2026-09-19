@@ -19,7 +19,8 @@ import type {
   Perfil,
   Prancha,
   Rotina,
-  Simbolo
+  Simbolo,
+  VersaoPrancheta
 } from '../tipos';
 import {
   VERSAO_DADOS,
@@ -45,6 +46,16 @@ import { montarFrase, textoDoSimbolo } from '../fala/frase';
 import { falar as falarTexto, pararFala } from '../fala/sintetizador';
 import { tocarAudioGravado } from '../fala/gravador';
 import { novoId } from '../utilidades/id';
+
+/** Dados para criar ou atualizar uma versão de prancheta (escola, almoço...). */
+export interface DadosVersao {
+  /** Preenchido ao editar uma versão que já existe. */
+  id?: string;
+  nome: string;
+  emoji: string;
+  simbolos: Simbolo[];
+  comNucleo: boolean;
+}
 
 /** Dados de uma categoria (pasta) para criar ou editar. */
 export interface DadosCategoria {
@@ -182,6 +193,14 @@ interface ValorContexto {
   transferirSimbolo: (deId: string, simboloId: string, paraId: string) => void;
   /** Devolve quantas palavras foram realmente adicionadas (repetidas são ignoradas). */
   adicionarSimbolosProntos: (pranchaId: string, simbolos: Simbolo[]) => number;
+
+  // Versões de prancheta por momento (escola, almoço, aula...)
+  versoes: VersaoPrancheta[];
+  /** Cria ou atualiza uma versão, deixa-a em uso e devolve o id. */
+  salvarVersao: (dados: DadosVersao) => string;
+  excluirVersao: (id: string) => void;
+  /** Usa uma versão na tela de Falar (ou volta à prancheta completa com null). */
+  ativarVersao: (id: string | null) => void;
 
   // Modelos de prancheta e pranchetas completas
   modelosUsuario: ModeloUsuario[];
@@ -469,20 +488,28 @@ export function ProvedorApp({ children }: { children: ReactNode }) {
 
   /** As pranchas de um modelo pronto ou de um modelo salvo pelo usuário. */
   const resolverModelo = useCallback(
-    async (modeloId: string): Promise<Prancha[] | null> => {
+    async (
+      modeloId: string
+    ): Promise<{ pranchas: Prancha[]; versoes?: VersaoPrancheta[] } | null> => {
       const pronto = MODELOS_PRONTOS.find((m) => m.id === modeloId);
-      if (pronto) return montarPranchasDoModelo(pronto);
+      if (pronto) return { pranchas: montarPranchasDoModelo(pronto) };
       const pacote = await lerModelo(modeloId);
       if (!pacote) return null;
       await registrarMidias(pacote.imagens ?? {}, pacote.audios ?? {});
-      return JSON.parse(JSON.stringify(pacote.pranchas)) as Prancha[];
+      return {
+        pranchas: JSON.parse(JSON.stringify(pacote.pranchas)) as Prancha[],
+        versoes: pacote.versoes
+          ? (JSON.parse(JSON.stringify(pacote.versoes)) as VersaoPrancheta[])
+          : undefined
+      };
     },
     [registrarMidias]
   );
 
   const adicionarPerfil = useCallback(async (nome: string, fotoDataUrl?: string, modeloId?: string) => {
-    const pranchasDoModelo = modeloId ? await resolverModelo(modeloId) : null;
-    const novo = criarPerfil(nome.trim() || 'Novo perfil', pranchasDoModelo ?? undefined);
+    const doModelo = modeloId ? await resolverModelo(modeloId) : null;
+    const novo = criarPerfil(nome.trim() || 'Novo perfil', doModelo?.pranchas);
+    if (doModelo?.versoes?.length) novo.versoes = doModelo.versoes;
     if (fotoDataUrl) {
       const idImagem = novoId('img');
       await salvarImagem(idImagem, fotoDataUrl);
@@ -860,6 +887,53 @@ export function ProvedorApp({ children }: { children: ReactNode }) {
     [perfil, alterarPrancha]
   );
 
+  // --- Versões de prancheta por momento ---------------------------------------
+
+  const versoes = useMemo(() => perfil?.versoes ?? [], [perfil?.versoes]);
+
+  const salvarVersao = useCallback(
+    (dados: DadosVersao): string => {
+      const id = dados.id ?? novoId('versao');
+      const versao: VersaoPrancheta = {
+        id,
+        nome: dados.nome.trim() || 'Minha prancheta',
+        emoji: dados.emoji,
+        simbolos: dados.simbolos,
+        comNucleo: dados.comNucleo
+      };
+      alterarPerfilAtivo((p) => {
+        const atuais = p.versoes ?? [];
+        const existe = atuais.some((v) => v.id === id);
+        return {
+          ...p,
+          versoes: existe ? atuais.map((v) => (v.id === id ? versao : v)) : [...atuais, versao],
+          versaoAtivaId: id
+        };
+      });
+      setFrase([]);
+      return id;
+    },
+    [alterarPerfilAtivo]
+  );
+
+  const excluirVersao = useCallback(
+    (id: string) => {
+      alterarPerfilAtivo((p) => ({
+        ...p,
+        versoes: (p.versoes ?? []).filter((v) => v.id !== id),
+        versaoAtivaId: p.versaoAtivaId === id ? undefined : p.versaoAtivaId
+      }));
+    },
+    [alterarPerfilAtivo]
+  );
+
+  const ativarVersao = useCallback(
+    (id: string | null) => {
+      alterarPerfilAtivo((p) => ({ ...p, versaoAtivaId: id ?? undefined }));
+    },
+    [alterarPerfilAtivo]
+  );
+
   // --- Modelos de prancheta e pranchetas completas ------------------------------
 
   const modelosUsuario = useMemo(() => estado?.modelos ?? [], [estado?.modelos]);
@@ -869,11 +943,13 @@ export function ProvedorApp({ children }: { children: ReactNode }) {
     (p: Perfil, nome: string, emoji?: string): ArquivoPacote => {
       const imgs: Record<string, string> = {};
       const auds: Record<string, string> = {};
-      for (const pr of p.pranchas) {
-        for (const s of pr.simbolos) {
-          if (s.imagemId && imagens[s.imagemId]) imgs[s.imagemId] = imagens[s.imagemId];
-          if (s.audioId && audios[s.audioId]) auds[s.audioId] = audios[s.audioId];
-        }
+      const todosSimbolos = [
+        ...p.pranchas.flatMap((pr) => pr.simbolos),
+        ...(p.versoes ?? []).flatMap((v) => v.simbolos)
+      ];
+      for (const s of todosSimbolos) {
+        if (s.imagemId && imagens[s.imagemId]) imgs[s.imagemId] = imagens[s.imagemId];
+        if (s.audioId && audios[s.audioId]) auds[s.audioId] = audios[s.audioId];
       }
       return {
         formato: 'prancha-caa-pacote',
@@ -882,6 +958,7 @@ export function ProvedorApp({ children }: { children: ReactNode }) {
         nome,
         emoji,
         pranchas: JSON.parse(JSON.stringify(p.pranchas)) as Prancha[],
+        versoes: JSON.parse(JSON.stringify(p.versoes ?? [])) as VersaoPrancheta[],
         imagens: imgs,
         audios: auds
       };
@@ -989,17 +1066,21 @@ export function ProvedorApp({ children }: { children: ReactNode }) {
       }
       await registrarMidias(novasImg, novosAud);
 
+      const remapear = (s: Simbolo): Simbolo => ({
+        ...s,
+        imagemId: s.imagemId ? mapaImg[s.imagemId] : undefined,
+        audioId: s.audioId ? mapaAud[s.audioId] : undefined
+      });
       const pranchas: Prancha[] = dados.pranchas.map((pr) => ({
         ...pr,
-        simbolos: pr.simbolos.map((s) => ({
-          ...s,
-          imagemId: s.imagemId ? mapaImg[s.imagemId] : undefined,
-          audioId: s.audioId ? mapaAud[s.audioId] : undefined
-        }))
+        simbolos: pr.simbolos.map(remapear)
       }));
 
       const nome = dados.nome?.trim() || 'Prancheta importada';
       const novo = criarPerfil(nome, pranchas);
+      if (Array.isArray(dados.versoes) && dados.versoes.length > 0) {
+        novo.versoes = dados.versoes.map((v) => ({ ...v, simbolos: v.simbolos.map(remapear) }));
+      }
       setEstado((anterior) =>
         anterior ? { ...anterior, perfis: [...anterior.perfis, novo], perfilAtivoId: novo.id } : anterior
       );
@@ -1058,6 +1139,10 @@ export function ProvedorApp({ children }: { children: ReactNode }) {
       editarCategoria,
       transferirSimbolo,
       adicionarSimbolosProntos,
+      versoes,
+      salvarVersao,
+      excluirVersao,
+      ativarVersao,
       modelosUsuario,
       aplicarModelo,
       salvarPerfilComoModelo,
@@ -1110,6 +1195,10 @@ export function ProvedorApp({ children }: { children: ReactNode }) {
     editarCategoria,
     transferirSimbolo,
     adicionarSimbolosProntos,
+    versoes,
+    salvarVersao,
+    excluirVersao,
+    ativarVersao,
     modelosUsuario,
     aplicarModelo,
     salvarPerfilComoModelo,

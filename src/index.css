@@ -894,3 +894,63 @@ body {
     display: none;
   }
 }
+
+/* ==========================================================================
+   CARTÕES DE IMAGEM
+   --------------------------------------------------------------------------
+   Quando a imagem já é o cartão inteiro (fundo, desenho e palavra), o bloco
+   não desenha borda, fundo nem círculo: só a imagem, com uma sombra sólida
+   que segue o contorno arredondado dela. Vem por último no arquivo (e com
+   !important) para valer em todos os temas e estilos.
+   ========================================================================== */
+
+:root .botao-simbolo.cartao-imagem {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 0;
+  border-radius: 12%;
+  overflow: visible;
+}
+
+.cartao-imagem img {
+  filter: drop-shadow(0 5px 0 rgba(15, 21, 51, 0.3));
+  transition: transform 150ms ease, filter 150ms ease;
+}
+
+[data-estilo='contorno'] .cartao-imagem img {
+  filter: drop-shadow(4px 4px 0 var(--linha));
+}
+
+.cartao-imagem:active img {
+  transform: translateY(3px);
+}
+
+[data-estilo='contorno'] .cartao-imagem:active img {
+  transform: translate(3px, 3px);
+  filter: drop-shadow(1px 1px 0 var(--linha));
+}
+
+/* Itens que podem ser arrastados (tela Montar): sem seleção de texto, sem
+   menu de imprimir/salvar imagem ao segurar o dedo. */
+.arrastavel {
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.arrastavel:active {
+  cursor: grabbing;
+}
+
+/* Marca de onde o item vai entrar na prancheta durante o arrasto. */
+.ponto-de-entrada {
+  box-shadow: -7px 0 0 0 var(--primaria);
+  border-radius: 0.5rem;
+}
+
+.ponto-de-entrada-fim {
+  box-shadow: 7px 0 0 0 var(--primaria);
+  border-radius: 0.5rem;
+}
