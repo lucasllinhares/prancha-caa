@@ -297,6 +297,34 @@ body {
     border-color: var(--borda);
     min-height: 60px;
   }
+
+  /* "Mais opções": esconde controles avançados/pouco usados atrás de um toque,
+     para a tela mostrar só o essencial de cara. Usado em Ajustes e Editar. */
+  .detalhe-opcoes {
+    @apply rounded-2xl border-2 p-3;
+    border-color: var(--borda);
+    background: var(--cartao-2);
+  }
+
+  .detalhe-opcoes-titulo {
+    @apply flex min-h-toque cursor-pointer select-none items-center gap-2 font-extrabold;
+    list-style: none;
+  }
+
+  .detalhe-opcoes-titulo::-webkit-details-marker {
+    display: none;
+  }
+
+  .detalhe-opcoes-titulo::after {
+    content: '▸';
+    margin-left: auto;
+    transition: transform 150ms ease;
+    color: var(--texto-suave);
+  }
+
+  .detalhe-opcoes[open] > .detalhe-opcoes-titulo::after {
+    transform: rotate(90deg);
+  }
 }
 
 /* ==========================================================================

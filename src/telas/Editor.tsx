@@ -382,61 +382,67 @@ export function Editor() {
         <button type="button" className="botao botao-primario w-full text-lg" onClick={abrirNovo}>
           + NOVA PALAVRA
         </button>
-        <div className="grid grid-cols-2 gap-2">
-          <button type="button" className="botao" onClick={() => setMostrarBanco((v) => !v)} disabled={prancha.inicial}>
-            📚 PALAVRAS PRONTAS
-          </button>
-          <button type="button" className="botao" onClick={abrirNovaCategoria}>
-            🗂️ NOVA CATEGORIA
-          </button>
-          <button type="button" className="botao" onClick={abrirEdicaoCategoria} disabled={prancha.inicial}>
-            ✏️ EDITAR CATEGORIA
-          </button>
-          <button type="button" className="botao" onClick={apagarPrancha} disabled={prancha.inicial}>
-            🗑️ EXCLUIR CATEGORIA
-          </button>
-          <button type="button" className="botao" onClick={() => exportarPrancha(prancha.id)}>
-            ⬇️ EXPORTAR CATEGORIA
-          </button>
-          <button type="button" className="botao" onClick={() => inputJson.current?.click()}>
-            ⬆️ IMPORTAR CATEGORIA
-          </button>
-          <button
-            type="button"
-            className="botao col-span-2"
-            onClick={() => inputVarias.current?.click()}
-          >
-            🖼️ ADICIONAR VÁRIAS IMAGENS (CARTÕES)
-          </button>
-        </div>
-        <input
-          ref={inputVarias}
-          type="file"
-          accept="image/*"
-          multiple
-          className="hidden"
-          onChange={(e) => {
-            const arquivos = Array.from(e.target.files ?? []);
-            e.target.value = '';
-            if (arquivos.length > 0) void adicionarVariasImagens(arquivos);
-          }}
-        />
-        <input
-          ref={inputJson}
-          type="file"
-          accept="application/json,.json"
-          className="hidden"
-          onChange={(e) => {
-            const arquivo = e.target.files?.[0];
-            if (arquivo) void importar(arquivo);
-            e.target.value = '';
-          }}
-        />
-        <p className="text-sm opacity-80">
-          Exportar gera um arquivo que outra pessoa pode importar neste app, mesmo sem internet —
-          é assim que terapeutas trocam categorias entre si. Para levar a prancheta INTEIRA de um
-          aluno, use a aba <strong>Perfis</strong>.
-        </p>
+        <button type="button" className="botao w-full" onClick={() => setMostrarBanco((v) => !v)} disabled={prancha.inicial}>
+          📚 PALAVRAS PRONTAS
+        </button>
+
+        <details className="detalhe-opcoes">
+          <summary className="detalhe-opcoes-titulo">⚙️ Mais opções da categoria</summary>
+          <div className="mt-3 flex flex-col gap-2">
+            <div className="grid grid-cols-2 gap-2">
+              <button type="button" className="botao" onClick={abrirNovaCategoria}>
+                🗂️ NOVA CATEGORIA
+              </button>
+              <button type="button" className="botao" onClick={abrirEdicaoCategoria} disabled={prancha.inicial}>
+                ✏️ EDITAR CATEGORIA
+              </button>
+              <button type="button" className="botao" onClick={apagarPrancha} disabled={prancha.inicial}>
+                🗑️ EXCLUIR CATEGORIA
+              </button>
+              <button
+                type="button"
+                className="botao"
+                onClick={() => inputVarias.current?.click()}
+              >
+                🖼️ VÁRIAS IMAGENS
+              </button>
+              <button type="button" className="botao" onClick={() => exportarPrancha(prancha.id)}>
+                ⬇️ EXPORTAR
+              </button>
+              <button type="button" className="botao" onClick={() => inputJson.current?.click()}>
+                ⬆️ IMPORTAR
+              </button>
+            </div>
+            <input
+              ref={inputVarias}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                const arquivos = Array.from(e.target.files ?? []);
+                e.target.value = '';
+                if (arquivos.length > 0) void adicionarVariasImagens(arquivos);
+              }}
+            />
+            <input
+              ref={inputJson}
+              type="file"
+              accept="application/json,.json"
+              className="hidden"
+              onChange={(e) => {
+                const arquivo = e.target.files?.[0];
+                if (arquivo) void importar(arquivo);
+                e.target.value = '';
+              }}
+            />
+            <p className="text-sm opacity-80">
+              Exportar/importar gera um arquivo desta categoria para trocar com outra pessoa, mesmo
+              sem internet. Para levar a prancheta INTEIRA de um aluno, use a aba{' '}
+              <strong>Perfis</strong>.
+            </p>
+          </div>
+        </details>
       </section>
 
       {/* Formulário de categoria (nova ou editar) */}
@@ -523,32 +529,23 @@ export function Editor() {
       )}
 
       {/* Modelos de prancheta: somar categorias prontas ao perfil atual */}
-      <section className="flex flex-col gap-2 cartao">
-        <button
-          type="button"
-          className="botao w-full"
-          aria-expanded={mostrarModelos}
-          onClick={() => setMostrarModelos((v) => !v)}
-        >
-          🎒 {mostrarModelos ? 'FECHAR MODELOS' : 'ADICIONAR CATEGORIAS DE UM MODELO'}
-        </button>
-        {mostrarModelos && (
-          <>
-            <p className="text-sm opacity-80">
-              Escolha um modelo (Escola, Casa, Passeio...) e some as categorias dele a esta
-              prancheta. Categorias com o mesmo nome de alguma que você já tem não são repetidas.
-            </p>
-            <GaleriaModelos valor={modeloEscolhido} onEscolher={setModeloEscolhido} />
-            <button
-              type="button"
-              className="botao botao-primario w-full"
-              onClick={() => void adicionarModeloAoPerfil()}
-            >
-              + ADICIONAR AO INÍCIO
-            </button>
-          </>
-        )}
-      </section>
+      <details className="detalhe-opcoes" open={mostrarModelos} onToggle={(e) => setMostrarModelos(e.currentTarget.open)}>
+        <summary className="detalhe-opcoes-titulo">🎒 Adicionar categorias de um modelo</summary>
+        <div className="mt-3 flex flex-col gap-2">
+          <p className="text-sm opacity-80">
+            Escolha um modelo (Escola, Casa, Passeio...) e some as categorias dele a esta
+            prancheta. Categorias com o mesmo nome de alguma que você já tem não são repetidas.
+          </p>
+          <GaleriaModelos valor={modeloEscolhido} onEscolher={setModeloEscolhido} />
+          <button
+            type="button"
+            className="botao botao-primario w-full"
+            onClick={() => void adicionarModeloAoPerfil()}
+          >
+            + ADICIONAR AO INÍCIO
+          </button>
+        </div>
+      </details>
 
       {/* Formulário de símbolo */}
       {rascunho && (
@@ -567,19 +564,6 @@ export function Editor() {
               value={rascunho.texto}
               placeholder="Ex.: suco"
               onChange={(e) => setRascunho({ ...rascunho, texto: e.target.value })}
-            />
-          </div>
-
-          <div>
-            <label className="rotulo-campo" htmlFor="campo-fala">
-              O que a voz vai falar (opcional)
-            </label>
-            <input
-              id="campo-fala"
-              className="campo"
-              value={rascunho.textoFala}
-              placeholder="Ex.: eu quero suco de laranja"
-              onChange={(e) => setRascunho({ ...rascunho, textoFala: e.target.value })}
             />
           </div>
 
@@ -649,65 +633,6 @@ export function Editor() {
           </div>
 
           <div>
-            <span className="rotulo-campo">Voz gravada (opcional)</span>
-            <p className="mb-2 text-sm opacity-80">
-              Grave a sua voz (ou de quem a pessoa reconhece) dizendo a palavra. Quando houver
-              uma gravação, ela toca em vez da voz do aparelho.
-            </p>
-            {!gravacaoDisponivel() ? (
-              <p className="cartao text-sm font-bold">
-                Este navegador não permite gravar áudio pelo microfone.
-              </p>
-            ) : (
-              <div className="flex flex-wrap items-center gap-2">
-                {!gravando ? (
-                  <button type="button" className="botao" onClick={() => void comecarGravacao()}>
-                    🎤 GRAVAR MINHA VOZ
-                  </button>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      className="botao botao-falar"
-                      onClick={() => void pararGravacao()}
-                    >
-                      ⏹️ PARAR E SALVAR
-                    </button>
-                    <button type="button" className="botao" onClick={cancelarGravacao}>
-                      CANCELAR GRAVAÇÃO
-                    </button>
-                    <span className="pilula" aria-live="polite">
-                      🔴 gravando…
-                    </span>
-                  </>
-                )}
-                {(rascunho.audioNovo || rascunho.audioAtual) && !gravando && (
-                  <>
-                    <button
-                      type="button"
-                      className="botao"
-                      onClick={() =>
-                        tocarAudioGravado((rascunho.audioNovo ?? rascunho.audioAtual) as string)
-                      }
-                    >
-                      ▶️ OUVIR
-                    </button>
-                    <button
-                      type="button"
-                      className="botao"
-                      onClick={() =>
-                        setRascunho({ ...rascunho, audioNovo: undefined, audioAtual: undefined })
-                      }
-                    >
-                      🗑️ APAGAR GRAVAÇÃO
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-
-          <div>
             <span className="rotulo-campo">Cor de fundo (padrão Fitzgerald Key)</span>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               {CORES_FITZGERALD.map((cor) => (
@@ -751,26 +676,103 @@ export function Editor() {
             )}
           </div>
 
-          <div>
-            <label className="rotulo-campo" htmlFor="campo-destino">
-              Este bloco abre outra categoria? (opcional)
-            </label>
-            <select
-              id="campo-destino"
-              className="campo"
-              value={rascunho.pranchaDestinoId}
-              onChange={(e) => setRascunho({ ...rascunho, pranchaDestinoId: e.target.value })}
-            >
-              <option value="">Não — é uma palavra para falar</option>
-              {pranchas
-                .filter((p) => p.id !== prancha.id)
-                .map((p) => (
-                  <option key={p.id} value={p.id}>
-                    Abrir “{p.nome}”
-                  </option>
-                ))}
-            </select>
-          </div>
+          <details className="detalhe-opcoes">
+            <summary className="detalhe-opcoes-titulo">⚙️ Opções avançadas da palavra</summary>
+            <div className="mt-3 flex flex-col gap-4">
+              <div>
+                <label className="rotulo-campo" htmlFor="campo-fala">
+                  O que a voz vai falar (opcional)
+                </label>
+                <input
+                  id="campo-fala"
+                  className="campo"
+                  value={rascunho.textoFala}
+                  placeholder="Ex.: eu quero suco de laranja"
+                  onChange={(e) => setRascunho({ ...rascunho, textoFala: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <span className="rotulo-campo">Voz gravada</span>
+                <p className="mb-2 text-sm opacity-80">
+                  Grave a sua voz (ou de quem a pessoa reconhece) dizendo a palavra. Quando houver
+                  uma gravação, ela toca em vez da voz do aparelho.
+                </p>
+                {!gravacaoDisponivel() ? (
+                  <p className="cartao text-sm font-bold">
+                    Este navegador não permite gravar áudio pelo microfone.
+                  </p>
+                ) : (
+                  <div className="flex flex-wrap items-center gap-2">
+                    {!gravando ? (
+                      <button type="button" className="botao" onClick={() => void comecarGravacao()}>
+                        🎤 GRAVAR MINHA VOZ
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          className="botao botao-falar"
+                          onClick={() => void pararGravacao()}
+                        >
+                          ⏹️ PARAR E SALVAR
+                        </button>
+                        <button type="button" className="botao" onClick={cancelarGravacao}>
+                          CANCELAR GRAVAÇÃO
+                        </button>
+                        <span className="pilula" aria-live="polite">
+                          🔴 gravando…
+                        </span>
+                      </>
+                    )}
+                    {(rascunho.audioNovo || rascunho.audioAtual) && !gravando && (
+                      <>
+                        <button
+                          type="button"
+                          className="botao"
+                          onClick={() =>
+                            tocarAudioGravado((rascunho.audioNovo ?? rascunho.audioAtual) as string)
+                          }
+                        >
+                          ▶️ OUVIR
+                        </button>
+                        <button
+                          type="button"
+                          className="botao"
+                          onClick={() =>
+                            setRascunho({ ...rascunho, audioNovo: undefined, audioAtual: undefined })
+                          }
+                        >
+                          🗑️ APAGAR GRAVAÇÃO
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="rotulo-campo" htmlFor="campo-destino">
+                  Este bloco abre outra categoria? (opcional)
+                </label>
+                <select
+                  id="campo-destino"
+                  className="campo"
+                  value={rascunho.pranchaDestinoId}
+                  onChange={(e) => setRascunho({ ...rascunho, pranchaDestinoId: e.target.value })}
+                >
+                  <option value="">Não — é uma palavra para falar</option>
+                  {pranchas
+                    .filter((p) => p.id !== prancha.id)
+                    .map((p) => (
+                      <option key={p.id} value={p.id}>
+                        Abrir “{p.nome}”
+                      </option>
+                    ))}
+                </select>
+              </div>
+            </div>
+          </details>
 
           <div className="flex gap-2">
             <button type="button" className="botao botao-primario flex-1" onClick={() => void salvar()}>

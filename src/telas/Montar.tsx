@@ -48,14 +48,15 @@ interface Sessao {
 }
 
 /**
- * Montar prancheta: todos os itens ficam numa lista (embaixo) e a pessoa vai
- * arrastando e soltando na prancheta (em cima), que vira uma tela só com o que
- * ela escolheu — para a escola, o almoço, a aula... Serve para a professora
- * montar a prancheta da criança com as palavras que ela provavelmente vai usar.
+ * Montar prancheta: todos os itens ficam numa lista (embaixo) e a pessoa
+ * escolhe os que quer para a prancheta em montagem (em cima) — para a escola,
+ * o almoço, a aula... Serve para a professora montar a prancheta da criança
+ * com as palavras que ela provavelmente vai usar.
  *
- * O arrasto usa eventos de ponteiro, então funciona com mouse e com o dedo
- * (no celular: segurar um instante e arrastar; rolar a lista continua normal).
- * Tocar num item só o marca; dá para marcar vários e arrastar todos de uma vez.
+ * Bem simples, dois jeitos de colocar um item:
+ *  - TOQUE: adiciona o item no fim da prancheta na hora.
+ *  - ARRASTAR: solta o item exatamente onde quiser (funciona com mouse e com
+ *    o dedo; no celular, segure um instante antes de arrastar).
  */
 export function Montar({ onIrParaFalar }: { onIrParaFalar: () => void }) {
   const { pranchas, imagens, perfil, versoes, salvarVersao, excluirVersao, ativarVersao } = useApp();
@@ -107,7 +108,6 @@ export function Montar({ onIrParaFalar }: { onIrParaFalar: () => void }) {
   const [emoji, setEmoji] = useState('🏫');
   const [comNucleo, setComNucleo] = useState(false);
   const [editandoId, setEditandoId] = useState<string | null>(null);
-  const [selecionados, setSelecionados] = useState<Record<string, Simbolo>>({});
   const [aviso, setAviso] = useState<{ texto: string; usar?: boolean } | null>(null);
   const [arrasto, setArrasto] = useState<Arrasto | null>(null);
 
@@ -122,8 +122,6 @@ export function Montar({ onIrParaFalar }: { onIrParaFalar: () => void }) {
   // Espelhos do estado para os ouvintes globais (que vivem além de um render).
   const bandejaRef = useRef(bandeja);
   bandejaRef.current = bandeja;
-  const selecionadosRef = useRef(selecionados);
-  selecionadosRef.current = selecionados;
 
   const avisar = useCallback((texto: string, usar?: boolean) => {
     setAviso({ texto, usar });
@@ -217,14 +215,9 @@ export function Montar({ onIrParaFalar }: { onIrParaFalar: () => void }) {
       if (evento.pointerType === 'mouse' && evento.button !== 0) return;
       encerrarGesto();
 
-      // Item marcado + arrastar = leva todos os marcados; item solto = só ele.
-      const marcados = Object.values(selecionadosRef.current);
-      const itens =
-        origem === 'banco' && selecionadosRef.current[chave] && marcados.length > 0 ? marcados : [item];
-
       const s: Sessao = {
         origem,
-        itens,
+        itens: [item],
         indiceOrigem,
         chave,
         x0: evento.clientX,
@@ -277,23 +270,15 @@ export function Montar({ onIrParaFalar }: { onIrParaFalar: () => void }) {
         if (s.ativo) {
           const { alvo, sobreBanco } = ultimoAlvo.current;
           if (s.origem === 'banco') {
-            if (alvo !== null) {
-              inserir(s.itens, alvo);
-              setSelecionados({});
-            }
+            if (alvo !== null) inserir(s.itens, alvo);
           } else if (alvo !== null) {
             mover(s.indiceOrigem, alvo);
           } else if (sobreBanco) {
             remover(s.indiceOrigem);
           }
         } else if (s.origem === 'banco') {
-          // Toque simples: marca ou desmarca o item.
-          setSelecionados((atual) => {
-            const copia = { ...atual };
-            if (copia[chave]) delete copia[chave];
-            else copia[chave] = item;
-            return copia;
-          });
+          // Toque simples (sem arrastar): adiciona o item no fim da prancheta.
+          inserir([item], bandejaRef.current.length);
         }
         encerrarGesto();
       };
@@ -336,33 +321,8 @@ export function Montar({ onIrParaFalar }: { onIrParaFalar: () => void }) {
 
   // --- Ações de botões -------------------------------------------------------
 
-  const marcarOuDesmarcar = (chave: string, item: Simbolo) => {
-    setSelecionados((atual) => {
-      const copia = { ...atual };
-      if (copia[chave]) delete copia[chave];
-      else copia[chave] = item;
-      return copia;
-    });
-  };
-
-  const totalMarcados = Object.keys(selecionados).length;
-
-  const adicionarMarcados = () => {
-    inserir(Object.values(selecionados), bandeja.length);
-    setSelecionados({});
-  };
-
-  const marcarGrupo = (g: Grupo) => {
-    setSelecionados((atual) => {
-      const copia = { ...atual };
-      const todos = g.simbolos.every((s) => copia[`${g.id}:${s.id}`]);
-      for (const s of g.simbolos) {
-        if (todos) delete copia[`${g.id}:${s.id}`];
-        else copia[`${g.id}:${s.id}`] = s;
-      }
-      return copia;
-    });
-  };
+  /** Enter/Espaço no teclado: mesmo efeito do toque — adiciona no fim. */
+  const adicionarRapido = (item: Simbolo) => inserir([item], bandejaRef.current.length);
 
   const comecarComCartoes = () => {
     setBandeja(CARTOES_ILUSTRADOS.map(copiarDoBanco));
@@ -376,7 +336,6 @@ export function Montar({ onIrParaFalar }: { onIrParaFalar: () => void }) {
     setEmoji('🏫');
     setComNucleo(false);
     setEditandoId(null);
-    setSelecionados({});
   };
 
   const salvar = () => {
@@ -400,7 +359,6 @@ export function Montar({ onIrParaFalar }: { onIrParaFalar: () => void }) {
     setEmoji(v.emoji);
     setComNucleo(v.comNucleo);
     setEditandoId(v.id);
-    setSelecionados({});
     setAviso(null);
   };
 
@@ -656,20 +614,9 @@ export function Montar({ onIrParaFalar }: { onIrParaFalar: () => void }) {
             onChange={(e) => setBusca(e.target.value)}
           />
           <p className="text-xs font-bold" style={{ color: 'var(--texto-suave)' }}>
-            Arraste para a prancheta (no celular, segure e arraste). Toque para marcar vários e
-            arraste todos juntos.
+            👆 Toque num item para adicionar. Para escolher o lugar exato, arraste (no celular,
+            segure e arraste).
           </p>
-          {totalMarcados > 0 && (
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="pilula">{totalMarcados} marcados</span>
-              <button type="button" className="botao botao-primario" onClick={adicionarMarcados}>
-                ➕ ADICIONAR À PRANCHETA
-              </button>
-              <button type="button" className="botao" onClick={() => setSelecionados({})}>
-                DESMARCAR
-              </button>
-            </div>
-          )}
         </div>
 
         <div className="flex flex-col gap-2">
@@ -687,44 +634,29 @@ export function Montar({ onIrParaFalar }: { onIrParaFalar: () => void }) {
                 <span className="flex-1">{g.nome}</span>
                 <span className="pilula">{g.simbolos.length}</span>
               </summary>
-              <button type="button" className="botao my-2 !min-h-[40px] text-xs" onClick={() => marcarGrupo(g)}>
-                ☑️ MARCAR / DESMARCAR TODOS
-              </button>
               <div
                 className="grid gap-2"
                 style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(76px, 1fr))' }}
               >
                 {g.simbolos.map((s) => {
                   const chave = `${g.id}:${s.id}`;
-                  const marcado = Boolean(selecionados[chave]);
                   return (
                     <div
                       key={chave}
                       role="button"
                       tabIndex={0}
-                      aria-pressed={marcado}
-                      aria-label={`${s.texto}${marcado ? ', marcado' : ''}`}
+                      aria-label={`Adicionar ${s.texto} à prancheta`}
                       onPointerDown={(e) => iniciarGesto(e, 'banco', s, -1, chave)}
                       onContextMenu={(e) => e.preventDefault()}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' || e.key === ' ') {
                           e.preventDefault();
-                          marcarOuDesmarcar(chave, s);
+                          adicionarRapido(s);
                         }
                       }}
-                      className={`arrastavel relative h-[88px] rounded-2xl ${
-                        marcado ? 'ring-4 ring-violet-600' : ''
-                      }`}
+                      className="arrastavel relative h-[88px] rounded-2xl"
                     >
                       {miniatura(s)}
-                      {marcado && (
-                        <span
-                          aria-hidden="true"
-                          className="absolute -right-1 -top-1 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-violet-600 text-xs font-black text-white"
-                        >
-                          ✔
-                        </span>
-                      )}
                     </div>
                   );
                 })}

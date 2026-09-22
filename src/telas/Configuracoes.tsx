@@ -175,61 +175,6 @@ export function Configuracoes() {
           </p>
         )}
 
-        <Opcoes<VelocidadeFala>
-          titulo="Velocidade da fala"
-          valor={config.velocidadeFala}
-          opcoes={[
-            { valor: 'lenta', rotulo: '🐢 LENTA' },
-            { valor: 'normal', rotulo: '🚶 NORMAL' },
-            { valor: 'rapida', rotulo: '🐇 RÁPIDA' }
-          ]}
-          onEscolher={(v) => atualizarConfig({ velocidadeFala: v })}
-        />
-
-        <Opcoes<TomVoz>
-          titulo="Tom da voz"
-          valor={config.tomVoz}
-          opcoes={[
-            { valor: 'grave', rotulo: 'GRAVE' },
-            { valor: 'medio', rotulo: 'MÉDIO' },
-            { valor: 'agudo', rotulo: 'AGUDO' }
-          ]}
-          onEscolher={(v) => atualizarConfig({ tomVoz: v })}
-        />
-
-        <div>
-          <label className="rotulo-campo" htmlFor="seletor-voz">
-            Voz do aparelho (português)
-          </label>
-          <select
-            id="seletor-voz"
-            className="campo"
-            value={config.vozURI}
-            onChange={(e) => atualizarConfig({ vozURI: e.target.value })}
-          >
-            <option value="">Automática (melhor voz pt-BR)</option>
-            {vozes.map((v) => (
-              <option key={v.voiceURI} value={v.voiceURI}>
-                {v.name} — {v.lang}
-              </option>
-            ))}
-          </select>
-          {vozes.length === 0 && (
-            <p className="mt-1 text-sm opacity-80">
-              Nenhuma voz em português encontrada. No Android, instale uma voz pt-BR nas
-              configurações de acessibilidade do aparelho.
-            </p>
-          )}
-        </div>
-
-        <button
-          type="button"
-          className="botao botao-primario"
-          onClick={() => falarTextoLivre('Oi! Eu falo por você. Está bom assim?')}
-        >
-          🔊 TESTAR A VOZ
-        </button>
-
         <Opcoes<string>
           titulo="Falar a palavra ao tocar no símbolo"
           valor={config.falarAoTocar ? 'sim' : 'nao'}
@@ -239,6 +184,66 @@ export function Configuracoes() {
           ]}
           onEscolher={(v) => atualizarConfig({ falarAoTocar: v === 'sim' })}
         />
+
+        <button
+          type="button"
+          className="botao botao-primario"
+          onClick={() => falarTextoLivre('Oi! Eu falo por você. Está bom assim?')}
+        >
+          🔊 TESTAR A VOZ
+        </button>
+
+        <details className="detalhe-opcoes">
+          <summary className="detalhe-opcoes-titulo">🎚️ Personalizar a voz</summary>
+          <div className="mt-3 flex flex-col gap-4">
+            <Opcoes<VelocidadeFala>
+              titulo="Velocidade da fala"
+              valor={config.velocidadeFala}
+              opcoes={[
+                { valor: 'lenta', rotulo: '🐢 LENTA' },
+                { valor: 'normal', rotulo: '🚶 NORMAL' },
+                { valor: 'rapida', rotulo: '🐇 RÁPIDA' }
+              ]}
+              onEscolher={(v) => atualizarConfig({ velocidadeFala: v })}
+            />
+
+            <Opcoes<TomVoz>
+              titulo="Tom da voz"
+              valor={config.tomVoz}
+              opcoes={[
+                { valor: 'grave', rotulo: 'GRAVE' },
+                { valor: 'medio', rotulo: 'MÉDIO' },
+                { valor: 'agudo', rotulo: 'AGUDO' }
+              ]}
+              onEscolher={(v) => atualizarConfig({ tomVoz: v })}
+            />
+
+            <div>
+              <label className="rotulo-campo" htmlFor="seletor-voz">
+                Voz do aparelho (português)
+              </label>
+              <select
+                id="seletor-voz"
+                className="campo"
+                value={config.vozURI}
+                onChange={(e) => atualizarConfig({ vozURI: e.target.value })}
+              >
+                <option value="">Automática (melhor voz pt-BR)</option>
+                {vozes.map((v) => (
+                  <option key={v.voiceURI} value={v.voiceURI}>
+                    {v.name} — {v.lang}
+                  </option>
+                ))}
+              </select>
+              {vozes.length === 0 && (
+                <p className="mt-1 text-sm opacity-80">
+                  Nenhuma voz em português encontrada. No Android, instale uma voz pt-BR nas
+                  configurações de acessibilidade do aparelho.
+                </p>
+              )}
+            </div>
+          </div>
+        </details>
       </section>
 
       {/* --- Estilo visual --------------------------------------------------- */}
@@ -325,19 +330,6 @@ export function Configuracoes() {
       <section className="flex flex-col gap-4 cartao">
         <h2 className="text-lg font-extrabold">Tela</h2>
 
-        <Opcoes<Densidade>
-          titulo="Símbolos por tela"
-          valor={config.densidade}
-          opcoes={[
-            { valor: 4, rotulo: '4' },
-            { valor: 6, rotulo: '6' },
-            { valor: 9, rotulo: '9' },
-            { valor: 12, rotulo: '12' },
-            { valor: 16, rotulo: '16' }
-          ]}
-          onEscolher={(v) => atualizarConfig({ densidade: v })}
-        />
-
         <Opcoes<TamanhoFonte>
           titulo="Tamanho da fonte"
           valor={config.tamanhoFonte}
@@ -375,15 +367,33 @@ export function Configuracoes() {
           onEscolher={(v) => atualizarConfig({ tema: v })}
         />
 
-        <Opcoes<string>
-          titulo="Faixa fixa de palavras do núcleo"
-          valor={config.mostrarNucleo ? 'sim' : 'nao'}
-          opcoes={[
-            { valor: 'sim', rotulo: 'MOSTRAR' },
-            { valor: 'nao', rotulo: 'ESCONDER' }
-          ]}
-          onEscolher={(v) => atualizarConfig({ mostrarNucleo: v === 'sim' })}
-        />
+        <details className="detalhe-opcoes">
+          <summary className="detalhe-opcoes-titulo">🔧 Mais opções de tela</summary>
+          <div className="mt-3 flex flex-col gap-4">
+            <Opcoes<Densidade>
+              titulo="Símbolos por tela (dentro de cada categoria)"
+              valor={config.densidade}
+              opcoes={[
+                { valor: 4, rotulo: '4' },
+                { valor: 6, rotulo: '6' },
+                { valor: 9, rotulo: '9' },
+                { valor: 12, rotulo: '12' },
+                { valor: 16, rotulo: '16' }
+              ]}
+              onEscolher={(v) => atualizarConfig({ densidade: v })}
+            />
+
+            <Opcoes<string>
+              titulo="Faixa fixa de palavras do núcleo"
+              valor={config.mostrarNucleo ? 'sim' : 'nao'}
+              opcoes={[
+                { valor: 'sim', rotulo: 'MOSTRAR' },
+                { valor: 'nao', rotulo: 'ESCONDER' }
+              ]}
+              onEscolher={(v) => atualizarConfig({ mostrarNucleo: v === 'sim' })}
+            />
+          </div>
+        </details>
       </section>
 
       {/* --- Acessibilidade ------------------------------------------------- */}
@@ -404,33 +414,38 @@ export function Configuracoes() {
           apertando <strong>ESPAÇO</strong> ou tocando em qualquer lugar da área de símbolos.
         </p>
 
-        <Opcoes<number>
-          titulo="Intervalo da varredura"
-          valor={config.varreduraIntervalo}
-          opcoes={[
-            { valor: 1, rotulo: '1s' },
-            { valor: 2, rotulo: '2s' },
-            { valor: 3, rotulo: '3s' },
-            { valor: 4, rotulo: '4s' },
-            { valor: 5, rotulo: '5s' }
-          ]}
-          onEscolher={(v) => atualizarConfig({ varreduraIntervalo: v })}
-        />
+        <details className="detalhe-opcoes">
+          <summary className="detalhe-opcoes-titulo">⌨️ Mais opções de acessibilidade</summary>
+          <div className="mt-3 flex flex-col gap-4">
+            <Opcoes<number>
+              titulo="Intervalo da varredura"
+              valor={config.varreduraIntervalo}
+              opcoes={[
+                { valor: 1, rotulo: '1s' },
+                { valor: 2, rotulo: '2s' },
+                { valor: 3, rotulo: '3s' },
+                { valor: 4, rotulo: '4s' },
+                { valor: 5, rotulo: '5s' }
+              ]}
+              onEscolher={(v) => atualizarConfig({ varreduraIntervalo: v })}
+            />
 
-        <div className="rounded-xl border-2 p-3" style={{ borderColor: 'var(--borda)' }}>
-          <h3 className="font-extrabold">Atalhos de teclado</h3>
-          <ul className="mt-1 list-inside list-disc text-sm">
-            <li>
-              <strong>ESPAÇO</strong>: fala a frase (ou seleciona, na varredura)
-            </li>
-            <li>
-              <strong>BACKSPACE</strong>: apaga a última palavra
-            </li>
-            <li>
-              <strong>SETAS</strong>: navegam entre os símbolos com foco destacado
-            </li>
-          </ul>
-        </div>
+            <div className="rounded-xl border-2 p-3" style={{ borderColor: 'var(--borda)' }}>
+              <h3 className="font-extrabold">Atalhos de teclado</h3>
+              <ul className="mt-1 list-inside list-disc text-sm">
+                <li>
+                  <strong>ESPAÇO</strong>: fala a frase (ou seleciona, na varredura)
+                </li>
+                <li>
+                  <strong>BACKSPACE</strong>: apaga a última palavra
+                </li>
+                <li>
+                  <strong>SETAS</strong>: navegam entre os símbolos com foco destacado
+                </li>
+              </ul>
+            </div>
+          </div>
+        </details>
       </section>
 
       {/* --- Bloqueio de edição --------------------------------------------- */}
